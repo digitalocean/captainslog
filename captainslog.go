@@ -9,5 +9,5 @@ var (
 )
 
 type Mutator interface {
-	Mutate(string) (string, error)
+	Mutate(SyslogMsg) (SyslogMsg, error)
 }
