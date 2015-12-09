@@ -143,8 +143,7 @@ type SyslogMsg struct {
 	Content string
 }
 
-// Parser is used by Unmarshal to parse rfc3164 messages.
-type Parser struct {
+type parser struct {
 	pri          Priority
 	priStart     int
 	priEnd       int
@@ -167,7 +166,7 @@ type Parser struct {
 // and a pointer to a SyslogMsg struct, and attempts to parse
 // the message and fill in the struct.
 func Unmarshal(b []byte, msg *SyslogMsg) error {
-	p := &Parser{
+	p := &parser{
 		buf:    b,
 		bufLen: len(b),
 		bufEnd: len(b) - 1,
@@ -179,7 +178,7 @@ func Unmarshal(b []byte, msg *SyslogMsg) error {
 	return err
 }
 
-func (p *Parser) parse() error {
+func (p *parser) parse() error {
 	err := p.parsePri()
 	if err != nil {
 		return err
@@ -209,7 +208,7 @@ func isNum(c byte) bool {
 	return c >= '0' && c <= '9'
 }
 
-func (p *Parser) parsePri() error {
+func (p *parser) parsePri() error {
 	if p.bufLen == 0 || (p.cur+priLen) > p.bufEnd {
 		return ErrBadPriority
 	}
@@ -253,7 +252,7 @@ func (p *Parser) parsePri() error {
 	return err
 }
 
-func (p *Parser) parseTime() error {
+func (p *parser) parseTime() error {
 	var err error
 	p.timeStart = p.cur
 	for _, timeFormat := range timeFormats {
@@ -274,7 +273,7 @@ func (p *Parser) parseTime() error {
 	return err
 }
 
-func (p *Parser) parseHost() error {
+func (p *parser) parseHost() error {
 	var err error
 	for p.buf[p.cur] == ' ' {
 		p.cur++
@@ -297,7 +296,7 @@ func (p *Parser) parseHost() error {
 	return err
 }
 
-func (p *Parser) parseTag() error {
+func (p *parser) parseTag() error {
 	var err error
 
 	for p.buf[p.cur] == ' ' {
@@ -325,7 +324,7 @@ func (p *Parser) parseTag() error {
 	return err
 }
 
-func (p *Parser) parseCee() {
+func (p *parser) parseCee() {
 	cur := p.cur
 
 	for p.buf[cur] == ' ' {
@@ -370,7 +369,7 @@ func (p *Parser) parseCee() {
 	return
 }
 
-func (p *Parser) parseContent() error {
+func (p *parser) parseContent() error {
 	var err error
 
 	p.contentStart = p.cur
