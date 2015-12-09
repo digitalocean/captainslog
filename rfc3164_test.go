@@ -1,6 +1,7 @@
 package captainslog
 
 import (
+	"fmt"
 	"testing"
 	"time"
 )
@@ -360,6 +361,20 @@ func TestContentNotTerminated(t *testing.T) {
 	if want, got := ErrBadContent, err; want != got {
 		t.Errorf("want '%s', got '%s'", want, got)
 	}
+}
+
+func ExampleUnmarshal() {
+	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: hello world\n")
+
+	var msg SyslogMsg
+	err := Unmarshal(b, &msg)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Printf("Syslog message was from host '%s'", msg.Host)
+	// Output: Syslog message was from host 'host.example.org'
+
 }
 
 func BenchmarkParserParse(b *testing.B) {
