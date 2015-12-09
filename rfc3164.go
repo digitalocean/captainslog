@@ -166,6 +166,7 @@ type parser struct {
 // and a pointer to a SyslogMsg struct, and attempts to parse
 // the message and fill in the struct.
 func Unmarshal(b []byte, msg *SyslogMsg) error {
+
 	p := &parser{
 		buf:    b,
 		bufLen: len(b),

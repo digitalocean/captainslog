@@ -2,24 +2,22 @@ package captainslog
 
 import (
 	"encoding/json"
-	"fmt"
 	"strings"
 )
 
 type JSONForElasticMutator struct{}
 
-func (m *JSONForElasticMutator) Mutate(msg *SyslogMsg) error {
+func (m *JSONForElasticMutator) Mutate(msg SyslogMsg) (SyslogMsg, error) {
 	if !msg.Cee {
-		return ErrMutate
+		return msg, ErrMutate
 	}
 
 	var contentStructured map[string]interface{}
-
 	var err error
 
 	err = json.Unmarshal([]byte(msg.Content), &contentStructured)
 	if err != nil {
-		return err
+		return msg, err
 	}
 
 	mutatedStructured := make(map[string]interface{})
@@ -30,9 +28,10 @@ func (m *JSONForElasticMutator) Mutate(msg *SyslogMsg) error {
 
 	newContent, err := json.Marshal(mutatedStructured)
 	if err != nil {
-		return err
+		return msg, err
 	}
 
-	msg.Content = fmt.Sprintf("%s%s\n", "@cee:", string(newContent))
-	return err
+	mutated := msg
+	mutated.Content = string(newContent)
+	return mutated, err
 }
