@@ -8,7 +8,7 @@ import (
 type JSONForElasticMutator struct{}
 
 func (m *JSONForElasticMutator) Mutate(msg SyslogMsg) (SyslogMsg, error) {
-	if !msg.Cee {
+	if !msg.IsCee {
 		return msg, ErrMutate
 	}
 

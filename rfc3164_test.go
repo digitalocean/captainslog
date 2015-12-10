@@ -64,7 +64,7 @@ func TestNewLog(t *testing.T) {
 	}
 
 	// cee
-	if want, got := false, msg.Cee; want != got {
+	if want, got := false, msg.IsCee; want != got {
 		t.Errorf("want '%v', got '%v'", want, got)
 	}
 
@@ -83,8 +83,12 @@ func TestNewLogCeeSpace(t *testing.T) {
 		t.Error(err)
 	}
 
-	if want, got := true, msg.Cee; want != got {
+	if want, got := true, msg.IsCee; want != got {
 		t.Errorf("want '%v', got '%v'", want, got)
+	}
+
+	if want, got := " @cee", msg.Cee; want != got {
+		t.Errorf("want '%s', got '%s'", want, got)
 	}
 
 	if want, got := "{\"a\":\"b\"}", msg.Content; want != got {
@@ -100,8 +104,12 @@ func TestNewLogCeeNoSpace(t *testing.T) {
 		t.Error(err)
 	}
 
-	if want, got := true, msg.Cee; want != got {
+	if want, got := true, msg.IsCee; want != got {
 		t.Errorf("want '%v', got '%v'", want, got)
+	}
+
+	if want, got := "@cee", msg.Cee; want != got {
+		t.Errorf("want '%s', got '%s'", want, got)
 	}
 }
 
