@@ -139,27 +139,19 @@ type SyslogMsg struct {
 	Time    time.Time
 	Host    string
 	Tag     string
-	Cee     bool
+	Cee     string
+	IsCee   bool
 	Content string
 }
 
 type parser struct {
-	pri          Priority
-	priStart     int
-	priEnd       int
-	timeStart    int
-	timeEnd      int
-	hostStart    int
-	hostEnd      int
-	tagStart     int
-	tagEnd       int
-	contentStart int
-	contentEnd   int
-	buf          []byte
-	bufLen       int
-	bufEnd       int
-	cur          int
-	msg          *SyslogMsg
+	tokenStart int
+	tokenEnd   int
+	buf        []byte
+	bufLen     int
+	bufEnd     int
+	cur        int
+	msg        *SyslogMsg
 }
 
 // Unmarshal accepts a byte array containing an rfc3164 message
@@ -219,7 +211,7 @@ func (p *parser) parsePri() error {
 	}
 
 	p.cur++
-	p.priStart = p.cur
+	p.tokenStart = p.cur
 
 	for p.buf[p.cur] != priEnd {
 		if !isNum(p.buf[p.cur]) {
@@ -237,8 +229,8 @@ func (p *parser) parsePri() error {
 		}
 	}
 
-	p.priEnd = p.cur
-	pVal, err := strconv.Atoi(string(p.buf[p.priStart:p.priEnd]))
+	p.tokenEnd = p.cur
+	pVal, err := strconv.Atoi(string(p.buf[p.tokenStart:p.tokenEnd]))
 	if err != nil {
 		return err
 	}
@@ -255,7 +247,7 @@ func (p *parser) parsePri() error {
 
 func (p *parser) parseTime() error {
 	var err error
-	p.timeStart = p.cur
+	p.tokenStart = p.cur
 	for _, timeFormat := range timeFormats {
 		tLen := len(timeFormat)
 		if p.cur+tLen > p.bufEnd {
@@ -267,7 +259,7 @@ func (p *parser) parseTime() error {
 		p.msg.Time, err = time.Parse(timeFormat, timeStr)
 		if err == nil {
 			p.cur = p.cur + tLen
-			p.timeEnd = p.cur
+			p.tokenEnd = p.cur
 			break
 		}
 	}
@@ -283,7 +275,7 @@ func (p *parser) parseHost() error {
 		}
 	}
 
-	p.hostStart = p.cur
+	p.tokenStart = p.cur
 
 	for p.buf[p.cur] != ' ' {
 		p.cur++
@@ -292,8 +284,8 @@ func (p *parser) parseHost() error {
 		}
 	}
 
-	p.hostEnd = p.cur
-	p.msg.Host = string(p.buf[p.hostStart:p.hostEnd])
+	p.tokenEnd = p.cur
+	p.msg.Host = string(p.buf[p.tokenStart:p.tokenEnd])
 	return err
 }
 
@@ -307,7 +299,7 @@ func (p *parser) parseTag() error {
 		}
 	}
 
-	p.tagStart = p.cur
+	p.tokenStart = p.cur
 
 	for p.buf[p.cur] != ':' && p.buf[p.cur] != ' ' {
 		p.cur++
@@ -320,12 +312,13 @@ func (p *parser) parseTag() error {
 		p.cur++
 	}
 
-	p.tagEnd = p.cur
-	p.msg.Tag = string(p.buf[p.tagStart:p.tagEnd])
+	p.tokenEnd = p.cur
+	p.msg.Tag = string(p.buf[p.tokenStart:p.tokenEnd])
 	return err
 }
 
 func (p *parser) parseCee() {
+	p.tokenStart = p.cur
 	cur := p.cur
 
 	for p.buf[cur] == ' ' {
@@ -362,10 +355,11 @@ func (p *parser) parseCee() {
 	if p.buf[cur] != ':' {
 		return
 	}
-
+	p.tokenEnd = cur
+	p.msg.IsCee = true
+	p.msg.Cee = string(p.buf[p.tokenStart:p.tokenEnd])
 	cur++
 	p.cur = cur
-	p.msg.Cee = true
 
 	return
 }
@@ -373,7 +367,7 @@ func (p *parser) parseCee() {
 func (p *parser) parseContent() error {
 	var err error
 
-	p.contentStart = p.cur
+	p.tokenStart = p.cur
 
 	for p.buf[p.cur] != '\n' {
 		p.cur++
@@ -382,7 +376,7 @@ func (p *parser) parseContent() error {
 		}
 	}
 
-	p.contentEnd = p.cur
-	p.msg.Content = string(p.buf[p.contentStart:p.contentEnd])
+	p.tokenEnd = p.cur
+	p.msg.Content = string(p.buf[p.tokenStart:p.tokenEnd])
 	return err
 }
