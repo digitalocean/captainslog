@@ -427,3 +427,44 @@ func BenchmarkParserParse(b *testing.B) {
 		}
 	}
 }
+
+func BenchmarkParserParseLeastLikelyTime(b *testing.B) {
+	m := []byte("<38>Mon Jan  2 15:04:05 host.example.org test: hello world\n")
+
+	var msg SyslogMsg
+
+	for i := 0; i < b.N; i++ {
+		err := Unmarshal(m, &msg)
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+func BenchmarkParserParseAndString(b *testing.B) {
+	m := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: hello world\n")
+
+	var msg SyslogMsg
+
+	for i := 0; i < b.N; i++ {
+		err := Unmarshal(m, &msg)
+		if err != nil {
+			panic(err)
+		}
+		_ = msg.String()
+	}
+}
+
+func BenchmarkParserParseAndBytes(b *testing.B) {
+	m := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: hello world\n")
+
+	var msg SyslogMsg
+
+	for i := 0; i < b.N; i++ {
+		err := Unmarshal(m, &msg)
+		if err != nil {
+			panic(err)
+		}
+		_ = msg.Bytes()
+	}
+}

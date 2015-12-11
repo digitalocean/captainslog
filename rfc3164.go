@@ -153,6 +153,11 @@ func (s *SyslogMsg) String() string {
 	return fmt.Sprintf("<%d>%s %s %s%s%s\n", s.Pri.Priority, s.Time.Format(s.timeFormat), s.Host, s.Tag, s.Cee, s.Content)
 }
 
+// Bytes returns the SyslogMsg as RFC3164 []byte
+func (s *SyslogMsg) Bytes() []byte {
+	return []byte(s.String())
+}
+
 type parser struct {
 	tokenStart int
 	tokenEnd   int

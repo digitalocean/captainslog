@@ -8,6 +8,7 @@ var (
 	ErrMutate = errors.New("mutate error")
 )
 
+// Mutators accept a SyslogMsg, and return a modified SyslogMsg
 type Mutator interface {
 	Mutate(SyslogMsg) (SyslogMsg, error)
 }
