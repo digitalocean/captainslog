@@ -256,11 +256,12 @@ func (p *parser) parsePri() error {
 
 func (p *parser) parseTime() error {
 	var err error
+	var foundTime bool
+
 	p.tokenStart = p.cur
 	for _, timeFormat := range timeFormats {
 		tLen := len(timeFormat)
 		if p.cur+tLen > p.bufEnd {
-			err = ErrBadTime
 			continue
 		}
 
@@ -270,8 +271,12 @@ func (p *parser) parseTime() error {
 			p.cur = p.cur + tLen
 			p.tokenEnd = p.cur
 			p.msg.timeFormat = timeFormat
+			foundTime = true
 			break
 		}
+	}
+	if !foundTime {
+		err = ErrBadTime
 	}
 	return err
 }
