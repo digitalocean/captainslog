@@ -2,6 +2,7 @@ package captainslog
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 	"time"
 )
@@ -121,7 +122,9 @@ var (
 	ErrBadContent = errors.New("Content not found")
 
 	timeFormats = []string{
-		"2006-01-02T15:04:05.999999-07:00", // rsyslog format
+		"2006-01-02T15:04:05.999999-07:00",
+		"Mon Jan _2 15:04:05 MST 2006",
+		"Mon Jan _2 15:04:05 2006",
 		"Mon Jan _2 15:04:05",
 	}
 )
@@ -135,13 +138,19 @@ type Priority struct {
 
 // SyslogMsg holds an Unmarshaled rfc3164 message.
 type SyslogMsg struct {
-	Pri     Priority
-	Time    time.Time
-	Host    string
-	Tag     string
-	Cee     string
-	IsCee   bool
-	Content string
+	Pri        Priority
+	Time       time.Time
+	Host       string
+	Tag        string
+	Cee        string
+	IsCee      bool
+	Content    string
+	timeFormat string
+}
+
+// String returns the SyslogMsg as an RFC3164 string
+func (s *SyslogMsg) String() string {
+	return fmt.Sprintf("<%d>%s %s %s%s%s\n", s.Pri.Priority, s.Time.Format(s.timeFormat), s.Host, s.Tag, s.Cee, s.Content)
 }
 
 type parser struct {
@@ -247,11 +256,12 @@ func (p *parser) parsePri() error {
 
 func (p *parser) parseTime() error {
 	var err error
+	var foundTime bool
+
 	p.tokenStart = p.cur
 	for _, timeFormat := range timeFormats {
 		tLen := len(timeFormat)
 		if p.cur+tLen > p.bufEnd {
-			err = ErrBadTime
 			continue
 		}
 
@@ -260,8 +270,13 @@ func (p *parser) parseTime() error {
 		if err == nil {
 			p.cur = p.cur + tLen
 			p.tokenEnd = p.cur
+			p.msg.timeFormat = timeFormat
+			foundTime = true
 			break
 		}
+	}
+	if !foundTime {
+		err = ErrBadTime
 	}
 	return err
 }
@@ -355,11 +370,13 @@ func (p *parser) parseCee() {
 	if p.buf[cur] != ':' {
 		return
 	}
+
+	cur++
+	p.cur = cur
+
 	p.tokenEnd = cur
 	p.msg.IsCee = true
 	p.msg.Cee = string(p.buf[p.tokenStart:p.tokenEnd])
-	cur++
-	p.cur = cur
 
 	return
 }
