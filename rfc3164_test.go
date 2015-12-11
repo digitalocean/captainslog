@@ -53,23 +53,28 @@ func TestNewLog(t *testing.T) {
 		t.Errorf("want '%d', got '%d'", want, got)
 	}
 
-	// host
+	_, zoneOffsetSecs := ts.Zone()
+	if want, got := -25200, zoneOffsetSecs; want != got {
+		t.Errorf("want '%d', got '%d'", want, got)
+	}
+
 	if want, got := "host.example.org", msg.Host; want != got {
 		t.Errorf("want '%s', got '%s'", want, got)
 	}
 
-	// tag
 	if want, got := "test:", msg.Tag; want != got {
 		t.Errorf("want '%s', got '%s'", want, got)
 	}
 
-	// cee
 	if want, got := false, msg.IsCee; want != got {
 		t.Errorf("want '%v', got '%v'", want, got)
 	}
 
-	// content
 	if want, got := " hello world", msg.Content; want != got {
+		t.Errorf("want '%s', got '%s'", want, got)
+	}
+
+	if want, got := string(b), msg.String(); want != got {
 		t.Errorf("want '%s', got '%s'", want, got)
 	}
 }
@@ -87,11 +92,15 @@ func TestNewLogCeeSpace(t *testing.T) {
 		t.Errorf("want '%v', got '%v'", want, got)
 	}
 
-	if want, got := " @cee", msg.Cee; want != got {
+	if want, got := " @cee:", msg.Cee; want != got {
 		t.Errorf("want '%s', got '%s'", want, got)
 	}
 
 	if want, got := "{\"a\":\"b\"}", msg.Content; want != got {
+		t.Errorf("want '%s', got '%s'", want, got)
+	}
+
+	if want, got := string(b), msg.String(); want != got {
 		t.Errorf("want '%s', got '%s'", want, got)
 	}
 }
@@ -108,7 +117,11 @@ func TestNewLogCeeNoSpace(t *testing.T) {
 		t.Errorf("want '%v', got '%v'", want, got)
 	}
 
-	if want, got := "@cee", msg.Cee; want != got {
+	if want, got := "@cee:", msg.Cee; want != got {
+		t.Errorf("want '%s', got '%s'", want, got)
+	}
+
+	if want, got := string(b), msg.String(); want != got {
 		t.Errorf("want '%s', got '%s'", want, got)
 	}
 }
@@ -123,6 +136,10 @@ func TestNoContent(t *testing.T) {
 	}
 
 	if want, got := "", msg.Content; want != got {
+		t.Errorf("want '%s', got '%s'", want, got)
+	}
+
+	if want, got := string(b), msg.String(); want != got {
 		t.Errorf("want '%s', got '%s'", want, got)
 	}
 }
@@ -147,6 +164,10 @@ func TestTagEndHandling(t *testing.T) {
 	}
 
 	if want, got := "test", msg.Tag; want != got {
+		t.Errorf("want '%s', got '%s'", want, got)
+	}
+
+	if want, got := string(b), msg.String(); want != got {
 		t.Errorf("want '%s', got '%s'", want, got)
 	}
 }
@@ -217,6 +238,10 @@ func TestParseTimeANSIC(t *testing.T) {
 	if want, got := 5, ts.Second(); want != got {
 		t.Errorf("want '%d', got '%d'", want, got)
 	}
+
+	if want, got := string(b), msg.String(); want != got {
+		t.Errorf("want '%s', got '%s'", want, got)
+	}
 }
 
 func TestParseTimeUnixDate(t *testing.T) {
@@ -248,6 +273,11 @@ func TestParseTimeUnixDate(t *testing.T) {
 
 	if want, got := 5, ts.Second(); want != got {
 		t.Errorf("want '%d', got '%d'", want, got)
+	}
+
+	zone, _ := ts.Zone()
+	if want, got := "MST", zone; want != got {
+		t.Errorf("want '%s', got '%s'", want, got)
 	}
 }
 
