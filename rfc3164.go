@@ -43,6 +43,56 @@ const (
 // Facility represents a syslog facility code
 type Facility int
 
+//FacilityTextToFacility accepts a string representation of a syslog
+// facility and returns a captainslog.Facility
+func FacilityTextToFacility(facilityText string) (Facility, error) {
+	var err error
+	switch facilityText {
+	case "kern", "Kern", "KERN":
+		return Kern, err
+	case "user", "User", "USER":
+		return User, err
+	case "mail", "Mail", "MAIL":
+		return Mail, err
+	case "daemon", "Daemon", "DAEMON":
+		return Daemon, err
+	case "auth", "Auth", "AUTH":
+		return Auth, err
+	case "syslog", "Syslog", "SYSLOG":
+		return Syslog, err
+	case "lpr", "Lpr", "LPR":
+		return LPR, err
+	case "news", "News", "NEWS":
+		return News, err
+	case "uucp", "Uucp", "UUCP":
+		return UUCP, err
+	case "cron", "Cron", "CRON":
+		return Cron, err
+	case "authpriv", "Authpriv", "AUTHPRIVE":
+		return AuthPriv, err
+	case "ftp", "Ftp", "FTP":
+		return FTP, err
+	case "local0", "Local0", "LOCAL0":
+		return Local0, err
+	case "local1", "Local1", "LOCAL1":
+		return Local1, err
+	case "local2", "Local2", "LOCAL2":
+		return Local2, err
+	case "local3", "Local3", "LOCAL3":
+		return Local3, err
+	case "local4", "Local4", "LOCAL4":
+		return Local4, err
+	case "local5", "Local5", "LOCAL5":
+		return Local5, err
+	case "local6", "Local6", "LOCAL6":
+		return Local6, err
+	case "local7", "Local7", "LOCAL7":
+		return Local7, err
+	default:
+		return Facility(-1), ErrBadFacility
+	}
+}
+
 const (
 	//Kern is the kernel rfc3164 facility
 	Kern Facility = 0
@@ -109,6 +159,9 @@ var (
 	//ErrBadPriority is returned when the priority of a message is malformed
 	ErrBadPriority = errors.New("Priority not found")
 
+	//ErrBadFacility is returned when a facility is not within allowed values
+	ErrBadFacility = errors.New("Facility not found")
+
 	//ErrBadTime is returned when the time of a message is malformed
 	ErrBadTime = errors.New("Time not found")
 
@@ -134,6 +187,16 @@ type Priority struct {
 	Priority int
 	Facility Facility
 	Severity Severity
+}
+
+// NewPriority calculates a Priority from a Facility
+// and Severity
+func NewPriority(f Facility, s Severity) *Priority {
+	return &Priority{
+		Facility: f,
+		Severity: s,
+		Priority: (int(f) * 8) + int(s),
+	}
 }
 
 // SyslogMsg holds an Unmarshaled rfc3164 message.

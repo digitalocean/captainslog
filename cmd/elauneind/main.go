@@ -19,16 +19,39 @@ const (
 func main() {
 	var recvAddress = flag.String("in", ":33333", "TCP endpoint to receive from")
 	var sendAddress = flag.String("out", "127.0.0.1:514", "TCP endpoint to send to")
+	var logFacility = flag.String("facility", "LOCAL7", "Syslog facility to log to")
 
 	flag.Parse()
 
+	facility, err := captainslog.FacilityTextToFacility(*logFacility)
+	if err != nil {
+		log.Printf("facility '%s' is not a valid facility\n", *logFacility)
+		os.Exit(1)
+	}
+
+	ceelog, err := captainslog.NewMostlyFeaturelessLogger(facility)
+	if err != nil {
+		log.Printf("could not start system logger: %s\n", err)
+		os.Exit(1)
+	}
+
 	sendChan := make(chan *captainslog.SyslogMsg)
+
+	ceelog.InfoWithFields(captainslog.Fields{
+		"component": "elauneind",
+		"action":    "start",
+		"msg":       "starting service",
+	})
 
 	go func() {
 	Connect:
 		conn, err := net.Dial("tcp", *sendAddress)
 		if err != nil {
-			log.Printf("E: connect error - %s", err)
+			ceelog.ErrorWithFields(captainslog.Fields{
+				"component": "conn",
+				"action":    "dial",
+				"msg":       err})
+
 			time.Sleep(time.Duration(retryInterval) * time.Second)
 			goto Connect
 		}
@@ -37,7 +60,11 @@ func main() {
 		for msg := range sendChan {
 			_, err := conn.Write(msg.Bytes())
 			if err != nil {
-				log.Printf("E: write error - %s", err)
+				ceelog.ErrorWithFields(captainslog.Fields{
+					"component": "conn",
+					"action":    "write",
+					"msg":       err})
+
 				time.Sleep(time.Duration(retryInterval) * time.Second)
 				goto Connect
 			}
@@ -46,7 +73,11 @@ func main() {
 
 	l, err := net.Listen("tcp", *recvAddress)
 	if err != nil {
-		log.Printf("E: listen error - %s", err)
+		ceelog.ErrorWithFields(captainslog.Fields{
+			"component": "listener",
+			"action":    "listen",
+			"msg":       err})
+
 		os.Exit(1)
 	}
 	defer l.Close()
@@ -54,7 +85,10 @@ func main() {
 	for {
 		conn, err := l.Accept()
 		if err != nil {
-			log.Printf("E: accept error - %s", err)
+			ceelog.ErrorWithFields(captainslog.Fields{
+				"ocmponent": "listener",
+				"action":    "accept",
+				"msg":       err})
 			continue
 		}
 		defer conn.Close()
@@ -67,7 +101,10 @@ func main() {
 				b, err := reader.ReadBytes('\n')
 				if err != nil {
 					if err != io.EOF {
-						log.Printf("E: readbytes error - %s", err)
+						ceelog.ErrorWithFields(captainslog.Fields{
+							"component": "reader",
+							"action":    "readbytes",
+							"msg":       err})
 					}
 					break
 				}
@@ -75,14 +112,21 @@ func main() {
 				var original captainslog.SyslogMsg
 				err = captainslog.Unmarshal(b, &original)
 				if err != nil {
-					log.Printf("E: unmarshal error - %s", err)
-					log.Print(err)
+					ceelog.ErrorWithFields(captainslog.Fields{
+						"component": "captainslog",
+						"action":    "unmarshal",
+						"msg":       err})
+
 					continue
 				}
 
 				mutated, err := mutator.Mutate(original)
 				if err != nil {
-					log.Printf("E: mutate error - %s", err)
+					ceelog.ErrorWithFields(captainslog.Fields{
+						"component": "mutator",
+						"action":    "Mutate",
+						"msg":       err})
+
 					continue
 				}
 
