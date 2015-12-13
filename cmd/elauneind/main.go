@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/digitalocean/captainslog"
@@ -95,7 +96,8 @@ func main() {
 
 		go func() {
 			reader := bufio.NewReader(conn)
-			mutator := &captainslog.JSONForElasticMutator{}
+			replacer := strings.NewReplacer(".", "_")
+			mutator := captainslog.NewJSONKeyMutator(replacer)
 
 			for {
 				b, err := reader.ReadBytes('\n')
