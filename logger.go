@@ -24,18 +24,25 @@ type MostlyFeaturelessLogger struct {
 // the given Facility
 func NewMostlyFeaturelessLogger(f Facility) (*MostlyFeaturelessLogger, error) {
 	l := &MostlyFeaturelessLogger{}
+	var p *Priority
 	var err error
 
-	l.errorLogger, err = syslog.NewLogger(
-		syslog.Priority(NewPriority(f, Err).Priority), 0)
-
+	p, err = NewPriority(f, Err)
 	if err != nil {
 		return l, err
 	}
 
-	l.infoLogger, err = syslog.NewLogger(
-		syslog.Priority(NewPriority(f, Notice).Priority), 0)
+	l.errorLogger, err = syslog.NewLogger(syslog.Priority(p.Priority), 0)
+	if err != nil {
+		return l, err
+	}
 
+	p, err = NewPriority(f, Notice)
+	if err != nil {
+		return l, err
+	}
+
+	l.infoLogger, err = syslog.NewLogger(syslog.Priority(p.Priority), 0)
 	if err != nil {
 		return l, err
 	}

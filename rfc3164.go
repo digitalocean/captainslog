@@ -68,7 +68,7 @@ func FacilityTextToFacility(facilityText string) (Facility, error) {
 		return UUCP, err
 	case "cron", "Cron", "CRON":
 		return Cron, err
-	case "authpriv", "Authpriv", "AUTHPRIVE":
+	case "authpriv", "Authpriv", "AUTHPRIV":
 		return AuthPriv, err
 	case "ftp", "Ftp", "FTP":
 		return FTP, err
@@ -162,6 +162,9 @@ var (
 	//ErrBadFacility is returned when a facility is not within allowed values
 	ErrBadFacility = errors.New("Facility not found")
 
+	//ErrBadSeverity is returned when a severity is not within allowed values
+	ErrBadSeverity = errors.New("Severity not found")
+
 	//ErrBadTime is returned when the time of a message is malformed
 	ErrBadTime = errors.New("Time not found")
 
@@ -191,12 +194,25 @@ type Priority struct {
 
 // NewPriority calculates a Priority from a Facility
 // and Severity
-func NewPriority(f Facility, s Severity) *Priority {
-	return &Priority{
+func NewPriority(f Facility, s Severity) (*Priority, error) {
+	p := &Priority{
 		Facility: f,
 		Severity: s,
 		Priority: (int(f) * 8) + int(s),
 	}
+
+	var err error
+
+	if int(f) < 0 || int(f) > 23 {
+		return p, ErrBadFacility
+	}
+
+	if int(s) < 0 || int(s) > 7 {
+		return p, ErrBadSeverity
+	}
+
+	return p, err
+
 }
 
 // SyslogMsg holds an Unmarshaled rfc3164 message.
@@ -279,6 +295,8 @@ func isNum(c byte) bool {
 }
 
 func (p *parser) parsePri() error {
+	var err error
+
 	if p.bufLen == 0 || (p.cur+priLen) > p.bufEnd {
 		return ErrBadPriority
 	}
@@ -297,20 +315,13 @@ func (p *parser) parsePri() error {
 
 		p.cur++
 
-		if p.cur > p.bufEnd {
-			return ErrBadPriority
-		}
-
 		if p.cur > (priLen - 1) {
 			return ErrBadPriority
 		}
 	}
 
 	p.tokenEnd = p.cur
-	pVal, err := strconv.Atoi(string(p.buf[p.tokenStart:p.tokenEnd]))
-	if err != nil {
-		return err
-	}
+	pVal, _ := strconv.Atoi(string(p.buf[p.tokenStart:p.tokenEnd]))
 
 	p.msg.Pri = Priority{
 		Priority: pVal,
@@ -406,9 +417,6 @@ func (p *parser) parseCee() {
 
 	for p.buf[cur] == ' ' {
 		cur++
-		if cur > p.bufEnd {
-			return
-		}
 	}
 
 	if cur+4 > p.bufEnd {

@@ -32,11 +32,7 @@ func (m *JSONForElasticMutator) Mutate(msg SyslogMsg) (SyslogMsg, error) {
 		mutatedStructured[k] = v
 	}
 
-	newContent, err := json.Marshal(mutatedStructured)
-	if err != nil {
-		return msg, err
-	}
-
+	newContent, _ := json.Marshal(mutatedStructured)
 	mutated := msg
 	mutated.Content = string(newContent)
 	return mutated, err
