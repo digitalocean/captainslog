@@ -1,12 +1,13 @@
 package captainslog
 
 import (
+	"bytes"
 	"fmt"
 	"testing"
 	"time"
 )
 
-func TestNewLog(t *testing.T) {
+func TestUnmarshal(t *testing.T) {
 	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: hello world\n")
 
 	var msg SyslogMsg
@@ -74,12 +75,16 @@ func TestNewLog(t *testing.T) {
 		t.Errorf("want '%s', got '%s'", want, got)
 	}
 
+	if want, got := 0, bytes.Compare(b, msg.Bytes()); want != got {
+		t.Errorf("want '%v', got '%v'", want, got)
+	}
+
 	if want, got := string(b), msg.String(); want != got {
 		t.Errorf("want '%s', got '%s'", want, got)
 	}
 }
 
-func TestNewLogCeeSpace(t *testing.T) {
+func TestUnmarshalCeeSpace(t *testing.T) {
 	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: @cee:{\"a\":\"b\"}\n")
 
 	var msg SyslogMsg
@@ -105,7 +110,7 @@ func TestNewLogCeeSpace(t *testing.T) {
 	}
 }
 
-func TestNewLogCeeNoSpace(t *testing.T) {
+func TestUnmarshalCeeNoSpace(t *testing.T) {
 	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test:@cee:{\"a\":\"b\"}\n")
 	var msg SyslogMsg
 	err := Unmarshal(b, &msg)
@@ -126,7 +131,33 @@ func TestNewLogCeeNoSpace(t *testing.T) {
 	}
 }
 
-func TestNoContent(t *testing.T) {
+func unmarshalCeeButNotCee(t *testing.T, b []byte) {
+	var msg SyslogMsg
+	err := Unmarshal(b, &msg)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if want, got := false, msg.IsCee; want != got {
+		t.Errorf("want '%v', got '%v'", want, got)
+	}
+}
+
+func TestUnmarshalCeeButNotCee(t *testing.T) {
+	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test:@cee{\"a\":\"b\"}\n")
+	unmarshalCeeButNotCee(t, b)
+
+	b = []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test:@ce{\"a\":\"b\"}\n")
+	unmarshalCeeButNotCee(t, b)
+
+	b = []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test:@c{\"a\":\"b\"}\n")
+	unmarshalCeeButNotCee(t, b)
+
+	b = []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test:@{\"a\":\"b\"}\n")
+	unmarshalCeeButNotCee(t, b)
+}
+
+func TestUnmarshalNoContent(t *testing.T) {
 	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test:\n")
 
 	var msg SyslogMsg
@@ -144,7 +175,7 @@ func TestNoContent(t *testing.T) {
 	}
 }
 
-func TestTagEndHandling(t *testing.T) {
+func TestUnmarshalTagEndHandling(t *testing.T) {
 	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: hello world\n")
 
 	var msg SyslogMsg
@@ -172,7 +203,7 @@ func TestTagEndHandling(t *testing.T) {
 	}
 }
 
-func TestParseUnixTime(t *testing.T) {
+func TestUnmarshalUnixTime(t *testing.T) {
 	b := []byte("<38>Mon Jan  2 15:04:05 host.example.org test: hello world\n")
 
 	var msg SyslogMsg
@@ -208,7 +239,7 @@ func TestParseUnixTime(t *testing.T) {
 	}
 }
 
-func TestParseTimeANSIC(t *testing.T) {
+func TestUnmarshalTimeANSIC(t *testing.T) {
 	b := []byte("<38>Mon Jan  2 15:04:05 2006 host.example.org test: hello world\n")
 
 	var msg SyslogMsg
@@ -244,7 +275,7 @@ func TestParseTimeANSIC(t *testing.T) {
 	}
 }
 
-func TestParseTimeUnixDate(t *testing.T) {
+func TestUnmarshalTimeUnixDate(t *testing.T) {
 	b := []byte("<38>Mon Jan  2 15:04:05 MST 2006 host.example.org test: hello world\n")
 
 	var msg SyslogMsg
@@ -281,7 +312,7 @@ func TestParseTimeUnixDate(t *testing.T) {
 	}
 }
 
-func TestParseTimeNoYear(t *testing.T) {
+func TestUnmarshalTimeNoYear(t *testing.T) {
 	b := []byte("<38>Mon Jan  2 15:04:05 host.example.org test: hello world\n")
 
 	var msg SyslogMsg
@@ -313,7 +344,7 @@ func TestParseTimeNoYear(t *testing.T) {
 	}
 }
 
-func TestNoPriority(t *testing.T) {
+func TestUnmarshalNoPriority(t *testing.T) {
 	b := []byte("2006-01-02T15:04:05.999999-07:00 host.example.org test: hello world\n")
 
 	var msg SyslogMsg
@@ -324,7 +355,7 @@ func TestNoPriority(t *testing.T) {
 	}
 }
 
-func TestNoPriorityEnd(t *testing.T) {
+func TestUnmarshalNoPriorityEnd(t *testing.T) {
 	b := []byte("<1912006-01-02T15:04:05.999999-07:00 host.example.org test: hello world\n")
 
 	var msg SyslogMsg
@@ -335,7 +366,7 @@ func TestNoPriorityEnd(t *testing.T) {
 	}
 }
 
-func TestPriorityTooLong(t *testing.T) {
+func TestUnmarshalPriorityTooLong(t *testing.T) {
 	b := []byte("<9999>2006-01-02T15:04:05.999999-07:00 host.example.org test: hello world\n")
 
 	var msg SyslogMsg
@@ -346,7 +377,7 @@ func TestPriorityTooLong(t *testing.T) {
 	}
 }
 
-func TestPriorityTruncated(t *testing.T) {
+func TestUnmarshalPriorityTruncated(t *testing.T) {
 	b := []byte("<99\n")
 
 	var msg SyslogMsg
@@ -357,7 +388,7 @@ func TestPriorityTruncated(t *testing.T) {
 	}
 }
 
-func TestDateTruncated(t *testing.T) {
+func TestUnmarshalDateTruncated(t *testing.T) {
 	b := []byte("<191>2006-01-02T15:0")
 
 	var msg SyslogMsg
@@ -368,7 +399,7 @@ func TestDateTruncated(t *testing.T) {
 	}
 }
 
-func TestHostTruncated(t *testing.T) {
+func TestUnmarshalHostTruncated(t *testing.T) {
 	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.examp")
 
 	var msg SyslogMsg
@@ -379,7 +410,18 @@ func TestHostTruncated(t *testing.T) {
 	}
 }
 
-func TestTagTruncated(t *testing.T) {
+func TestUnmarshalNoHost(t *testing.T) {
+	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 ")
+
+	var msg SyslogMsg
+	err := Unmarshal(b, &msg)
+
+	if want, got := ErrBadHost, err; want != got {
+		t.Errorf("want '%s', got '%s'", want, got)
+	}
+}
+
+func TestUnmarshalTagTruncated(t *testing.T) {
 	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org tes")
 
 	var msg SyslogMsg
@@ -390,7 +432,18 @@ func TestTagTruncated(t *testing.T) {
 	}
 }
 
-func TestContentNotTerminated(t *testing.T) {
+func TestUnmarshalNoTag(t *testing.T) {
+	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org ")
+
+	var msg SyslogMsg
+	err := Unmarshal(b, &msg)
+
+	if want, got := ErrBadTag, err; want != got {
+		t.Errorf("want '%s', got '%s'", want, got)
+	}
+}
+
+func TestUnmarshalContentNotTerminated(t *testing.T) {
 	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: hello wo")
 
 	var msg SyslogMsg
@@ -398,6 +451,204 @@ func TestContentNotTerminated(t *testing.T) {
 
 	if want, got := ErrBadContent, err; want != got {
 		t.Errorf("want '%s', got '%s'", want, got)
+	}
+}
+
+func TestUnmarshalPriNotNumber(t *testing.T) {
+	b := []byte("<1a1>2006-01-02T15:04:05.999999-07:00 host.example.org test: hello world\n")
+	var msg SyslogMsg
+	err := Unmarshal(b, &msg)
+
+	if want, got := ErrBadPriority, err; want != got {
+		t.Errorf("want '%s', got '%s'", want, got)
+	}
+}
+
+func TestNewPriority(t *testing.T) {
+	_, err := NewPriority(Local0, Err)
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+func TestNewPriorityBadFacility(t *testing.T) {
+	_, err := NewPriority(Facility(30), Err)
+	if want, got := ErrBadFacility, err; want != got {
+		t.Errorf("want '%v', got '%v'", want, got)
+	}
+}
+
+func TestNewPriorityBadSeverity(t *testing.T) {
+	_, err := NewPriority(Local0, Severity(50))
+	if want, got := ErrBadSeverity, err; want != got {
+		t.Errorf("want '%v', got '%v'", want, got)
+	}
+}
+
+func TestFacilityTextToFacility(t *testing.T) {
+	facility, err := FacilityTextToFacility("KERN")
+	if err != nil {
+		t.Error(err)
+	}
+	if want, got := Kern, facility; want != got {
+		t.Errorf("want '%v', got '%v'", want, got)
+	}
+
+	facility, err = FacilityTextToFacility("USER")
+	if err != nil {
+		t.Error(err)
+	}
+	if want, got := User, facility; want != got {
+		t.Errorf("want '%v', got '%v'", want, got)
+	}
+
+	facility, err = FacilityTextToFacility("MAIL")
+	if err != nil {
+		t.Error(err)
+	}
+	if want, got := Mail, facility; want != got {
+		t.Errorf("want '%v', got '%v'", want, got)
+	}
+
+	facility, err = FacilityTextToFacility("DAEMON")
+	if err != nil {
+		t.Error(err)
+	}
+	if want, got := Daemon, facility; want != got {
+		t.Errorf("want '%v', got '%v'", want, got)
+	}
+
+	facility, err = FacilityTextToFacility("AUTH")
+	if err != nil {
+		t.Error(err)
+	}
+	if want, got := Auth, facility; want != got {
+		t.Errorf("want '%v', got '%v'", want, got)
+	}
+
+	facility, err = FacilityTextToFacility("SYSLOG")
+	if err != nil {
+		t.Error(err)
+	}
+	if want, got := Syslog, facility; want != got {
+		t.Errorf("want '%v', got '%v'", want, got)
+	}
+
+	facility, err = FacilityTextToFacility("LPR")
+	if err != nil {
+		t.Error(err)
+	}
+	if want, got := LPR, facility; want != got {
+		t.Errorf("want '%v', got '%v'", want, got)
+	}
+
+	facility, err = FacilityTextToFacility("NEWS")
+	if err != nil {
+		t.Error(err)
+	}
+	if want, got := News, facility; want != got {
+		t.Errorf("want '%v', got '%v'", want, got)
+	}
+
+	facility, err = FacilityTextToFacility("UUCP")
+	if err != nil {
+		t.Error(err)
+	}
+	if want, got := UUCP, facility; want != got {
+		t.Errorf("want '%v', got '%v'", want, got)
+	}
+
+	facility, err = FacilityTextToFacility("CRON")
+	if err != nil {
+		t.Error(err)
+	}
+	if want, got := Cron, facility; want != got {
+		t.Errorf("want '%v', got '%v'", want, got)
+	}
+
+	facility, err = FacilityTextToFacility("AUTHPRIV")
+	if err != nil {
+		t.Error(err)
+	}
+	if want, got := AuthPriv, facility; want != got {
+		t.Errorf("want '%v', got '%v'", want, got)
+	}
+
+	facility, err = FacilityTextToFacility("FTP")
+	if err != nil {
+		t.Error(err)
+	}
+	if want, got := FTP, facility; want != got {
+		t.Errorf("want '%v', got '%v'", want, got)
+	}
+
+	facility, err = FacilityTextToFacility("LOCAL0")
+	if err != nil {
+		t.Error(err)
+	}
+	if want, got := Local0, facility; want != got {
+		t.Errorf("want '%v', got '%v'", want, got)
+	}
+
+	facility, err = FacilityTextToFacility("LOCAL1")
+	if err != nil {
+		t.Error(err)
+	}
+	if want, got := Local1, facility; want != got {
+		t.Errorf("want '%v', got '%v'", want, got)
+	}
+
+	facility, err = FacilityTextToFacility("LOCAL2")
+	if err != nil {
+		t.Error(err)
+	}
+	if want, got := Local2, facility; want != got {
+		t.Errorf("want '%v', got '%v'", want, got)
+	}
+
+	facility, err = FacilityTextToFacility("LOCAL3")
+	if err != nil {
+		t.Error(err)
+	}
+	if want, got := Local3, facility; want != got {
+		t.Errorf("want '%v', got '%v'", want, got)
+	}
+
+	facility, err = FacilityTextToFacility("LOCAL4")
+	if err != nil {
+		t.Error(err)
+	}
+	if want, got := Local4, facility; want != got {
+		t.Errorf("want '%v', got '%v'", want, got)
+	}
+
+	facility, err = FacilityTextToFacility("LOCAL5")
+	if err != nil {
+		t.Error(err)
+	}
+	if want, got := Local5, facility; want != got {
+		t.Errorf("want '%v', got '%v'", want, got)
+	}
+
+	facility, err = FacilityTextToFacility("LOCAL6")
+	if err != nil {
+		t.Error(err)
+	}
+	if want, got := Local6, facility; want != got {
+		t.Errorf("want '%v', got '%v'", want, got)
+	}
+
+	facility, err = FacilityTextToFacility("LOCAL7")
+	if err != nil {
+		t.Error(err)
+	}
+	if want, got := Local7, facility; want != got {
+		t.Errorf("want '%v', got '%v'", want, got)
+	}
+
+	facility, err = FacilityTextToFacility("BOGUS")
+	if want, got := ErrBadFacility, err; want != got {
+		t.Errorf("want '%v', got '%v'", want, got)
 	}
 }
 
