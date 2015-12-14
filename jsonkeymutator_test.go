@@ -3,6 +3,7 @@ package captainslog
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"testing"
 )
 
@@ -10,12 +11,13 @@ func checkMutateInterface(m Mutator) {
 	return
 }
 
-func TestJSONForElastcMutatorIsMutator(t *testing.T) {
-	mutator := &JSONForElasticMutator{}
+func TestJSONKeyMutatorIsMutator(t *testing.T) {
+	replacer := strings.NewReplacer(".", "_")
+	mutator := NewJSONKeyMutator(replacer)
 	checkMutateInterface(mutator)
 }
 
-func TestJSONForElasticMutatorMutate(t *testing.T) {
+func TestJSONKeyMutatorMutate(t *testing.T) {
 	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: @cee:{\"first.name\":\"captain\",\"one.two.three\":\"four.five.six\"}\n")
 
 	var original SyslogMsg
@@ -24,7 +26,9 @@ func TestJSONForElasticMutatorMutate(t *testing.T) {
 		t.Error(err)
 	}
 
-	mutator := &JSONForElasticMutator{}
+	replacer := strings.NewReplacer(".", "_")
+	mutator := NewJSONKeyMutator(replacer)
+
 	mutated, err := mutator.Mutate(original)
 	if err != nil {
 		t.Error(err)
@@ -35,7 +39,7 @@ func TestJSONForElasticMutatorMutate(t *testing.T) {
 	}
 }
 
-func TestJSONForElasticMutatorMutateNotCee(t *testing.T) {
+func TestJSONKeyMutatorMutateNotCee(t *testing.T) {
 	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: not a json message\n")
 
 	var original SyslogMsg
@@ -44,7 +48,9 @@ func TestJSONForElasticMutatorMutateNotCee(t *testing.T) {
 		t.Error(err)
 	}
 
-	mutator := &JSONForElasticMutator{}
+	replacer := strings.NewReplacer(".", "_")
+	mutator := NewJSONKeyMutator(replacer)
+
 	_, err = mutator.Mutate(original)
 
 	if want, got := ErrMutate, err; want != got {
@@ -52,7 +58,7 @@ func TestJSONForElasticMutatorMutateNotCee(t *testing.T) {
 	}
 }
 
-func TestJSONForElasticMutatorMutateBadJSON(t *testing.T) {
+func TestJSONKeyMutatorMutateBadJSON(t *testing.T) {
 	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: @cee:{\"first.name\":\"capt\n")
 
 	var original SyslogMsg
@@ -61,7 +67,9 @@ func TestJSONForElasticMutatorMutateBadJSON(t *testing.T) {
 		t.Error(err)
 	}
 
-	mutator := &JSONForElasticMutator{}
+	replacer := strings.NewReplacer(".", "_")
+	mutator := NewJSONKeyMutator(replacer)
+
 	_, err = mutator.Mutate(original)
 
 	wantedErr := errors.New("unexpected end of JSON input").Error()
@@ -71,7 +79,7 @@ func TestJSONForElasticMutatorMutateBadJSON(t *testing.T) {
 	}
 }
 
-func ExampleJSONForElasticMutatorMutate() {
+func ExampleJSONKeyMutatorMutate() {
 	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: @cee:{\"first.name\":\"captain\"}\n")
 
 	var original SyslogMsg
@@ -80,7 +88,9 @@ func ExampleJSONForElasticMutatorMutate() {
 		panic(err)
 	}
 
-	mutator := &JSONForElasticMutator{}
+	replacer := strings.NewReplacer(".", "_")
+	mutator := NewJSONKeyMutator(replacer)
+
 	mutated, err := mutator.Mutate(original)
 	if err != nil {
 		panic(err)
@@ -90,9 +100,11 @@ func ExampleJSONForElasticMutatorMutate() {
 	// Output: {"first_name":"captain"}
 }
 
-func BenchmarkJSONForElasticMutatorMutate(b *testing.B) {
+func BenchmarkJSONKeyMutatorMutate(b *testing.B) {
 	m := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: @cee:{\"first.name\":\"captain\"}\n")
-	mutator := &JSONForElasticMutator{}
+
+	replacer := strings.NewReplacer(".", "_")
+	mutator := NewJSONKeyMutator(replacer)
 
 	for i := 0; i < b.N; i++ {
 		var original SyslogMsg

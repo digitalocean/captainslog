@@ -47,50 +47,54 @@ type Facility int
 // facility and returns a captainslog.Facility
 func FacilityTextToFacility(facilityText string) (Facility, error) {
 	var err error
+	var facility Facility
+
 	switch facilityText {
-	case "kern", "Kern", "KERN":
-		return Kern, err
-	case "user", "User", "USER":
-		return User, err
-	case "mail", "Mail", "MAIL":
-		return Mail, err
-	case "daemon", "Daemon", "DAEMON":
-		return Daemon, err
-	case "auth", "Auth", "AUTH":
-		return Auth, err
-	case "syslog", "Syslog", "SYSLOG":
-		return Syslog, err
-	case "lpr", "Lpr", "LPR":
-		return LPR, err
-	case "news", "News", "NEWS":
-		return News, err
-	case "uucp", "Uucp", "UUCP":
-		return UUCP, err
-	case "cron", "Cron", "CRON":
-		return Cron, err
-	case "authpriv", "Authpriv", "AUTHPRIV":
-		return AuthPriv, err
-	case "ftp", "Ftp", "FTP":
-		return FTP, err
-	case "local0", "Local0", "LOCAL0":
-		return Local0, err
-	case "local1", "Local1", "LOCAL1":
-		return Local1, err
-	case "local2", "Local2", "LOCAL2":
-		return Local2, err
-	case "local3", "Local3", "LOCAL3":
-		return Local3, err
-	case "local4", "Local4", "LOCAL4":
-		return Local4, err
-	case "local5", "Local5", "LOCAL5":
-		return Local5, err
-	case "local6", "Local6", "LOCAL6":
-		return Local6, err
-	case "local7", "Local7", "LOCAL7":
-		return Local7, err
+	case "KERN":
+		facility = Kern
+	case "USER":
+		facility = User
+	case "MAIL":
+		facility = Mail
+	case "DAEMON":
+		facility = Daemon
+	case "AUTH":
+		facility = Auth
+	case "SYSLOG":
+		facility = Syslog
+	case "LPR":
+		facility = LPR
+	case "NEWS":
+		facility = News
+	case "UUCP":
+		facility = UUCP
+	case "CRON":
+		facility = Cron
+	case "AUTHPRIV":
+		facility = AuthPriv
+	case "FTP":
+		facility = FTP
+	case "LOCAL0":
+		facility = Local0
+	case "LOCAL1":
+		facility = Local1
+	case "LOCAL2":
+		facility = Local2
+	case "LOCAL3":
+		facility = Local3
+	case "LOCAL4":
+		facility = Local4
+	case "LOCAL5":
+		facility = Local5
+	case "LOCAL6":
+		facility = Local6
+	case "LOCAL7":
+		facility = Local7
 	default:
-		return Facility(-1), ErrBadFacility
+		facility = Facility(-1)
+		err = ErrBadFacility
 	}
+	return facility, err
 }
 
 const (
