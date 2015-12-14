@@ -20,7 +20,7 @@ const (
 func main() {
 	var recvAddress = flag.String("in", ":33333", "TCP endpoint to receive from")
 	var sendAddress = flag.String("out", "127.0.0.1:514", "TCP endpoint to send to")
-	var logFacility = flag.String("facility", "LOCAL7", "Syslog facility to log to")
+	var logFacility = flag.String("facility", "LOCAL6", "Syslog facility to log to")
 
 	flag.Parse()
 
