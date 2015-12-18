@@ -84,6 +84,83 @@ func TestUnmarshal(t *testing.T) {
 	}
 }
 
+func TestUnmarshalDateNoMillis(t *testing.T) {
+	b := []byte("<171>2015-12-18T18:08:17+00:00 host.example.org test: hello world\n")
+
+	var msg SyslogMsg
+	err := Unmarshal(b, &msg)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if want, got := Local5, msg.Pri.Facility; want != got {
+		t.Errorf("want '%d', got '%d'", want, got)
+	}
+
+	if want, got := Err, msg.Pri.Severity; want != got {
+		t.Errorf("want '%d', got '%d'", want, got)
+	}
+
+	ts := msg.Time
+
+	if want, got := 2015, ts.Year(); want != got {
+		t.Errorf("want '%d', got '%d'", want, got)
+	}
+
+	if want, got := time.Month(12), ts.Month(); want != got {
+		t.Errorf("want '%d', got '%d'", want, got)
+	}
+
+	if want, got := 18, ts.Day(); want != got {
+		t.Errorf("want '%d', got '%d'", want, got)
+	}
+
+	if want, got := 18, ts.Hour(); want != got {
+		t.Errorf("want '%d', got '%d'", want, got)
+	}
+
+	if want, got := 8, ts.Minute(); want != got {
+		t.Errorf("want '%d', got '%d'", want, got)
+	}
+
+	if want, got := 17, ts.Second(); want != got {
+		t.Errorf("want '%d', got '%d'", want, got)
+	}
+
+	if want, got := 0, ts.Nanosecond()/1000; want != got {
+		t.Errorf("want '%d', got '%d'", want, got)
+	}
+
+	_, zoneOffsetSecs := ts.Zone()
+	if want, got := 0, zoneOffsetSecs; want != got {
+		t.Errorf("want '%d', got '%d'", want, got)
+	}
+
+	if want, got := "host.example.org", msg.Host; want != got {
+		t.Errorf("want '%s', got '%s'", want, got)
+	}
+
+	if want, got := "test:", msg.Tag; want != got {
+		t.Errorf("want '%s', got '%s'", want, got)
+	}
+
+	if want, got := false, msg.IsCee; want != got {
+		t.Errorf("want '%v', got '%v'", want, got)
+	}
+
+	if want, got := " hello world", msg.Content; want != got {
+		t.Errorf("want '%s', got '%s'", want, got)
+	}
+
+	if want, got := 0, bytes.Compare(b, msg.Bytes()); want != got {
+		t.Errorf("want '%v', got '%v'", want, got)
+	}
+
+	if want, got := string(b), msg.String(); want != got {
+		t.Errorf("want '%s', got '%s'", want, got)
+	}
+}
+
 func TestUnmarshalCeeSpace(t *testing.T) {
 	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: @cee:{\"a\":\"b\"}\n")
 
