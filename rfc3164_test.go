@@ -131,6 +131,48 @@ func TestUnmarshalCeeNoSpace(t *testing.T) {
 	}
 }
 
+func TestUnmarshalCeeEarlyBufferBeforeColon(t *testing.T) {
+	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test:@cee\n")
+	var msg SyslogMsg
+	err := Unmarshal(b, &msg)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if want, got := false, msg.IsCee; want != got {
+		t.Errorf("want '%v', got '%v'", want, got)
+	}
+
+	if want, got := "", msg.Cee; want != got {
+		t.Errorf("want '%s', got '%s'", want, got)
+	}
+
+	if want, got := "@cee", msg.Content; want != got {
+		t.Errorf("want '%s', got '%s'", want, got)
+	}
+}
+
+func TestUnmarshalCeeEarlyBufferAfterColon(t *testing.T) {
+	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test:@cee:\n")
+	var msg SyslogMsg
+	err := Unmarshal(b, &msg)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if want, got := true, msg.IsCee; want != got {
+		t.Errorf("want '%v', got '%v'", want, got)
+	}
+
+	if want, got := "@cee:", msg.Cee; want != got {
+		t.Errorf("want '%s', got '%s'", want, got)
+	}
+
+	if want, got := "", msg.Content; want != got {
+		t.Errorf("want '%s', got '%s'", want, got)
+	}
+}
+
 func unmarshalCeeButNotCee(t *testing.T, b []byte) {
 	var msg SyslogMsg
 	err := Unmarshal(b, &msg)

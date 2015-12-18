@@ -30,9 +30,8 @@ func (m *JSONKeyMutator) Mutate(msg SyslogMsg) (SyslogMsg, error) {
 	}
 
 	var contentStructured map[string]interface{}
-	var err error
 
-	err = json.Unmarshal([]byte(msg.Content), &contentStructured)
+	err := json.Unmarshal([]byte(msg.Content), &contentStructured)
 	if err != nil {
 		return msg, err
 	}
@@ -44,7 +43,6 @@ func (m *JSONKeyMutator) Mutate(msg SyslogMsg) (SyslogMsg, error) {
 	}
 
 	newContent, _ := json.Marshal(mutatedStructured)
-	mutated := msg
-	mutated.Content = string(newContent)
-	return mutated, err
+	msg.Content = string(newContent)
+	return msg, nil
 }
