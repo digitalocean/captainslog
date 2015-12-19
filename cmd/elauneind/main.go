@@ -8,7 +8,6 @@ import (
 	"net"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/digitalocean/captainslog"
 )
@@ -36,41 +35,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	sendChan := make(chan *captainslog.SyslogMsg)
-
 	ceelog.InfoWithFields(captainslog.Fields{
 		"component": "elauneind",
 		"action":    "start",
 		"msg":       "starting service",
 	})
 
-	go func() {
-	Connect:
-		conn, err := net.Dial("tcp", *sendAddress)
-		if err != nil {
-			ceelog.ErrorWithFields(captainslog.Fields{
-				"component": "conn",
-				"action":    "dial",
-				"msg":       err})
-
-			time.Sleep(time.Duration(retryInterval) * time.Second)
-			goto Connect
-		}
-		defer conn.Close()
-
-		for msg := range sendChan {
-			_, err := conn.Write(msg.Bytes())
-			if err != nil {
-				ceelog.ErrorWithFields(captainslog.Fields{
-					"component": "conn",
-					"action":    "write",
-					"msg":       err})
-
-				time.Sleep(time.Duration(retryInterval) * time.Second)
-				goto Connect
-			}
-		}
-	}()
+	g := captainslog.NewOutputGadgetTCP(*sendAddress, retryInterval)
+	o := captainslog.NewOutputGizmo(g)
 
 	l, err := net.Listen("tcp", *recvAddress)
 	if err != nil {
@@ -132,7 +104,7 @@ func main() {
 					continue
 				}
 
-				sendChan <- &mutated
+				o.OutChan <- &mutated
 			}
 		}()
 	}
