@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func TestOutputGizmoWithTCPOutputPlugin(t *testing.T) {
+func TestOutputChannelerWithTCPOutputAdapter(t *testing.T) {
 	testMsg := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: hello world\n")
 	var msg SyslogMsg
 	err := Unmarshal(testMsg, &msg)
@@ -48,8 +48,8 @@ func TestOutputGizmoWithTCPOutputPlugin(t *testing.T) {
 		wg.Done()
 	}()
 
-	op := NewOutputGadgetTCP(address, retryInterval)
-	o := NewOutputGizmo(op)
+	a := NewTCPOutputAdapter(address, retryInterval)
+	o := NewOutputChanneler(a)
 
 	o.OutChan <- &msg
 	o.CmdChan <- CmdStop
