@@ -41,8 +41,8 @@ func main() {
 		"msg":       "starting service",
 	})
 
-	g := captainslog.NewOutputGadgetTCP(*sendAddress, retryInterval)
-	o := captainslog.NewOutputGizmo(g)
+	a := captainslog.NewTCPOutputAdapter(*sendAddress, retryInterval)
+	o := captainslog.NewOutputChanneler(a)
 
 	l, err := net.Listen("tcp", *recvAddress)
 	if err != nil {

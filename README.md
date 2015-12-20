@@ -1,5 +1,4 @@
 # captainslog [![Build Status](https://travis-ci.org/digitalocean/captainslog.svg?branch=master)](https://travis-ci.org/digitalocean/captainslog) [![Doc Status](https://godoc.org/github.com/digitalocean/captainslog?status.png)](https://godoc.org/github.com/digitalocean/captainslog)
-
 --
     import "github.com/digitalocean/captainslog"
 
@@ -46,6 +45,21 @@ func Unmarshal(b []byte, msg *SyslogMsg) error
 ```
 Unmarshal accepts a byte array containing an rfc3164 message and a pointer to a
 SyslogMsg struct, and attempts to parse the message and fill in the struct.
+
+#### type ChannelerCmd
+
+```go
+type ChannelerCmd int
+```
+
+ChannelerCmd represents a command that can be sent to a Channeler
+
+```go
+const (
+	// CmdStop tells a Gizmo to stop
+	CmdStop ChannelerCmd = iota
+)
+```
 
 #### type Facility
 
@@ -210,6 +224,43 @@ type Mutator interface {
 
 Mutator accept a SyslogMsg, and return a modified SyslogMsg
 
+#### type OutputAdapter
+
+```go
+type OutputAdapter interface {
+	Output(s *SyslogMsg) (int, error)
+	Connect() error
+	RetryInterval() int
+	Close()
+}
+```
+
+OutputAdapter is an interface for adapters that provide specific functionality
+to OutputChannelers. They are transport adapters - for instance,
+TCPOutputAdapter converts *Syslog messages received off a channeler to RFC3164
+[]byte encoded syslog messages sent over TCP.
+
+#### type OutputChanneler
+
+```go
+type OutputChanneler struct {
+	CmdChan chan<- ChannelerCmd
+	OutChan chan<- *SyslogMsg
+}
+```
+
+OutputChanneler is an outgoing endpoint in a chain of Channelers. An
+OutputChanneler uses an OutputAdapter to translate *SyslogMsg received on its
+OutChan to other encodings to be sent on other transports.
+
+#### func  NewOutputChanneler
+
+```go
+func NewOutputChanneler(a OutputAdapter) *OutputChanneler
+```
+NewOutputChanneler accepts an OutputAdapter and returns an new OutputChanneler
+using the adapter.
+
 #### type Priority
 
 ```go
@@ -228,38 +279,6 @@ Priority represents the PRI of a rfc3164 message.
 func NewPriority(f Facility, s Severity) (*Priority, error)
 ```
 NewPriority calculates a Priority from a Facility and Severity
-
-#### type Queue
-
-```go
-type Queue struct {
-}
-```
-
-
-#### func  NewQueue
-
-```go
-func NewQueue(max int) *Queue
-```
-
-#### func (*Queue) Dequeue
-
-```go
-func (q *Queue) Dequeue() SyslogMsg
-```
-
-#### func (*Queue) Enqueue
-
-```go
-func (q *Queue) Enqueue(s SyslogMsg) error
-```
-
-#### func (*Queue) Len
-
-```go
-func (q *Queue) Len() int
-```
 
 #### type Severity
 
@@ -326,3 +345,50 @@ Bytes returns the SyslogMsg as RFC3164 []byte
 func (s *SyslogMsg) String() string
 ```
 String returns the SyslogMsg as an RFC3164 string
+
+#### type TCPOutputAdapter
+
+```go
+type TCPOutputAdapter struct {
+}
+```
+
+TCPOutputAdapter sends *SyslogMsg as RFC3164 encoded bytes over TCP to a
+destination
+
+#### func  NewTCPOutputAdapter
+
+```go
+func NewTCPOutputAdapter(address string, retry int) *TCPOutputAdapter
+```
+NewTCPOutputAdapter accepts a tcp address ("127.0.0.1:31337") and a retry
+interval and returns a new running OutputChanneler
+
+#### func (*TCPOutputAdapter) Close
+
+```go
+func (o *TCPOutputAdapter) Close()
+```
+Close closes the underlying connection
+
+#### func (*TCPOutputAdapter) Connect
+
+```go
+func (o *TCPOutputAdapter) Connect() error
+```
+Connect tries to connect to the address
+
+#### func (*TCPOutputAdapter) Output
+
+```go
+func (o *TCPOutputAdapter) Output(s *SyslogMsg) (int, error)
+```
+Output accepts a *SyslogMsg and sends an RFC3164 []byte representation of it
+over TCP
+
+#### func (*TCPOutputAdapter) RetryInterval
+
+```go
+func (o *TCPOutputAdapter) RetryInterval() int
+```
+RetryInterval returns the retry interval of the OutputAdapter
