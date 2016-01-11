@@ -22,6 +22,43 @@ func NewJSONKeyMutator(replacer *strings.Replacer) *JSONKeyMutator {
 	}
 }
 
+// recurseMutateMap is a helper method to visit multi-level JSON used by Mutate
+func (m *JSONKeyMutator) recurseMutateMap(in, out map[string]interface{}) {
+	for k, v := range in {
+		mutated_key := m.replacer.Replace(k)
+		switch cv := v.(type) {
+		case map[string]interface{}:
+			nv := make(map[string]interface{})
+			out[mutated_key] = nv
+			m.recurseMutateMap(cv, nv)
+		case []interface{}:
+			nv := make([]interface{}, len(cv))
+			out[mutated_key] = nv
+			m.recurseMutateArr(cv, nv)
+		default:
+			out[mutated_key] = v
+		}
+	}
+}
+
+// recurseMutateArr is a helper method to visit multi-level JSON used by recurseMutateMap
+func (m *JSONKeyMutator) recurseMutateArr(in, out []interface{}) {
+	for i, v := range in {
+		switch cv := v.(type) {
+		case map[string]interface{}:
+			nv := make(map[string]interface{})
+			out[i] = nv
+			m.recurseMutateMap(cv, nv)
+		case []interface{}:
+			nv := make([]interface{}, len(cv))
+			out[i] = nv
+			m.recurseMutateArr(cv, nv)
+		default:
+			out[i] = v
+		}
+	}
+}
+
 // Mutate accepts a SyslogMsg, and if it is a CEE syslog message, "fixes"
 // the JSON keys to be compatible with Elasticsearch 2.x
 func (m *JSONKeyMutator) Mutate(msg SyslogMsg) (SyslogMsg, error) {
@@ -37,10 +74,7 @@ func (m *JSONKeyMutator) Mutate(msg SyslogMsg) (SyslogMsg, error) {
 	}
 
 	mutatedStructured := make(map[string]interface{})
-	for k, v := range contentStructured {
-		k = m.replacer.Replace(k)
-		mutatedStructured[k] = v
-	}
+	m.recurseMutateMap(contentStructured, mutatedStructured)
 
 	newContent, _ := json.Marshal(mutatedStructured)
 	msg.Content = string(newContent)
