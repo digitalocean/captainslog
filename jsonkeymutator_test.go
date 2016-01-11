@@ -79,6 +79,28 @@ func TestJSONKeyMutatorMutateBadJSON(t *testing.T) {
 	}
 }
 
+func TestJSONKeyMutatorMutateMultilevelJSON(t *testing.T) {
+	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: @cee:{\"params.name.first\":\"captain\",\"params.name.last\":\"morgan\",\"params.name.ident\":[47],\"sub.arr\":[{\"arr.obj1\":\"val1\"},{\"arr.obj2\":\"val2\"},17],\"sub.obj\":{\"foo.bar\":27,\"bar\":\"baz\"}}\n")
+
+	var original SyslogMsg
+	err := Unmarshal(b, &original)
+	if err != nil {
+		t.Error(err)
+	}
+
+	replacer := strings.NewReplacer(".", "_")
+	mutator := NewJSONKeyMutator(replacer)
+
+	mutated, err := mutator.Mutate(original)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if want, got := "{\"params_name_first\":\"captain\",\"params_name_ident\":[47],\"params_name_last\":\"morgan\",\"sub_arr\":[{\"arr_obj1\":\"val1\"},{\"arr_obj2\":\"val2\"},17],\"sub_obj\":{\"bar\":\"baz\",\"foo_bar\":27}}", mutated.Content; want != got {
+		t.Errorf("want '%s', got '%s'", want, got)
+	}
+}
+
 func ExampleJSONKeyMutatorMutate() {
 	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: @cee:{\"first.name\":\"captain\"}\n")
 
