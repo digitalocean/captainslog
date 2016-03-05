@@ -25,18 +25,18 @@ func NewJSONKeyMutator(replacer *strings.Replacer) *JSONKeyMutator {
 // recurseMutateMap is a helper method to visit multi-level JSON used by Mutate
 func (m *JSONKeyMutator) recurseMutateMap(in, out map[string]interface{}) {
 	for k, v := range in {
-		mutated_key := m.replacer.Replace(k)
+		mutatedKey := m.replacer.Replace(k)
 		switch cv := v.(type) {
 		case map[string]interface{}:
 			nv := make(map[string]interface{})
-			out[mutated_key] = nv
+			out[mutatedKey] = nv
 			m.recurseMutateMap(cv, nv)
 		case []interface{}:
 			nv := make([]interface{}, len(cv))
-			out[mutated_key] = nv
+			out[mutatedKey] = nv
 			m.recurseMutateArr(cv, nv)
 		default:
-			out[mutated_key] = v
+			out[mutatedKey] = v
 		}
 	}
 }
