@@ -1,7 +1,6 @@
 package captainslog
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -54,27 +53,6 @@ func TestJSONKeyMutatorMutateNotCee(t *testing.T) {
 	_, err = mutator.Mutate(original)
 
 	if want, got := ErrMutate, err; want != got {
-		t.Errorf("want '%v', got '%v'", want, got)
-	}
-}
-
-func TestJSONKeyMutatorMutateBadJSON(t *testing.T) {
-	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: @cee:{\"first.name\":\"capt\n")
-
-	var original SyslogMsg
-	err := Unmarshal(b, &original)
-	if err != nil {
-		t.Error(err)
-	}
-
-	replacer := strings.NewReplacer(".", "_")
-	mutator := NewJSONKeyMutator(replacer)
-
-	_, err = mutator.Mutate(original)
-
-	wantedErr := errors.New("unexpected end of JSON input").Error()
-
-	if want, got := wantedErr, err.Error(); want != got {
 		t.Errorf("want '%v', got '%v'", want, got)
 	}
 }

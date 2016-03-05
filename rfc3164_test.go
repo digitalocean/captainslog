@@ -2,6 +2,7 @@ package captainslog
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -310,20 +311,13 @@ func TestUnmarshalCeeEarlyBufferAfterColon(t *testing.T) {
 	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test:@cee:\n")
 	var msg SyslogMsg
 	err := Unmarshal(b, &msg)
-	if err != nil {
-		t.Error(err)
-	}
 
-	if want, got := true, msg.IsCee; want != got {
+	if want, got := errors.New("unexpected end of JSON input").Error(), err.Error(); want != got {
 		t.Errorf("want '%v', got '%v'", want, got)
 	}
 
-	if want, got := "@cee:", msg.Cee; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
-	}
-
-	if want, got := "", msg.Content; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+	if want, got := false, msg.IsCee; want != got {
+		t.Errorf("want '%v', got '%v'", want, got)
 	}
 }
 
@@ -864,6 +858,19 @@ func ExampleUnmarshal() {
 
 func BenchmarkParserParse(b *testing.B) {
 	m := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: hello world\n")
+
+	var msg SyslogMsg
+
+	for i := 0; i < b.N; i++ {
+		err := Unmarshal(m, &msg)
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+func BenchmarkParserParseCEE(b *testing.B) {
+	m := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: @cee:{\"a\":\"b\"}\n")
 
 	var msg SyslogMsg
 

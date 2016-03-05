@@ -1,8 +1,8 @@
 package captainslog
 
 import (
+	"encoding/json"
 	"errors"
-	"fmt"
 	"strconv"
 	"time"
 )
@@ -219,28 +219,6 @@ func NewPriority(f Facility, s Severity) (*Priority, error) {
 
 	return p, err
 
-}
-
-// SyslogMsg holds an Unmarshaled rfc3164 message.
-type SyslogMsg struct {
-	Pri        Priority
-	Time       time.Time
-	Host       string
-	Tag        string
-	Cee        string
-	IsCee      bool
-	Content    string
-	timeFormat string
-}
-
-// String returns the SyslogMsg as an RFC3164 string
-func (s *SyslogMsg) String() string {
-	return fmt.Sprintf("<%d>%s %s %s%s%s\n", s.Pri.Priority, s.Time.Format(s.timeFormat), s.Host, s.Tag, s.Cee, s.Content)
-}
-
-// Bytes returns the SyslogMsg as RFC3164 []byte
-func (s *SyslogMsg) Bytes() []byte {
-	return []byte(s.String())
 }
 
 type parser struct {
@@ -476,6 +454,13 @@ func (p *parser) parseContent() error {
 	}
 
 	p.tokenEnd = p.cur
+
+	if p.msg.IsCee {
+		err = json.Unmarshal(p.buf[p.tokenStart:p.tokenEnd], &p.msg.JSONValues)
+		if err != nil {
+			p.msg.IsCee = false
+		}
+	}
 	p.msg.Content = string(p.buf[p.tokenStart:p.tokenEnd])
 	return err
 }
