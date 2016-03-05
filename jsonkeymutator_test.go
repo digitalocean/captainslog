@@ -79,7 +79,7 @@ func TestJSONKeyMutatorMutateMultilevelJSON(t *testing.T) {
 	}
 }
 
-func ExampleJSONKeyMutatorMutate() {
+func ExampleJSONKeyMutator() {
 	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: @cee:{\"first.name\":\"captain\"}\n")
 
 	var original SyslogMsg
