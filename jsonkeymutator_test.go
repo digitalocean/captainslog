@@ -1,7 +1,6 @@
 package captainslog
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -58,27 +57,6 @@ func TestJSONKeyMutatorMutateNotCee(t *testing.T) {
 	}
 }
 
-func TestJSONKeyMutatorMutateBadJSON(t *testing.T) {
-	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: @cee:{\"first.name\":\"capt\n")
-
-	var original SyslogMsg
-	err := Unmarshal(b, &original)
-	if err != nil {
-		t.Error(err)
-	}
-
-	replacer := strings.NewReplacer(".", "_")
-	mutator := NewJSONKeyMutator(replacer)
-
-	_, err = mutator.Mutate(original)
-
-	wantedErr := errors.New("unexpected end of JSON input").Error()
-
-	if want, got := wantedErr, err.Error(); want != got {
-		t.Errorf("want '%v', got '%v'", want, got)
-	}
-}
-
 func TestJSONKeyMutatorMutateMultilevelJSON(t *testing.T) {
 	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: @cee:{\"params.name.first\":\"captain\",\"params.name.last\":\"morgan\",\"params.name.ident\":[47],\"sub.arr\":[{\"arr.obj1\":\"val1\"},{\"arr.obj2\":\"val2\"},17],\"sub.obj\":{\"foo.bar\":27,\"bar\":\"baz\"}}\n")
 
@@ -101,7 +79,7 @@ func TestJSONKeyMutatorMutateMultilevelJSON(t *testing.T) {
 	}
 }
 
-func ExampleJSONKeyMutatorMutate() {
+func ExampleJSONKeyMutator() {
 	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: @cee:{\"first.name\":\"captain\"}\n")
 
 	var original SyslogMsg
