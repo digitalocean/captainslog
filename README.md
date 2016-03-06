@@ -38,7 +38,7 @@ func main() {
 ```
 
 ## Contibution Guidelines
-We use the [Collective Code Construction Contract](http://rfc.zeromq.org/spec:22) for the development of captainlog. For details, see [CONTRIBUTING.md](https://github.com/digitalocean/captainslog/blob/master/CONTRIBUTING.md).
+We use the [Collective Code Construction Contract](http://rfc.zeromq.org/spec:22) for the development of captainslog. For details, see [CONTRIBUTING.md](https://github.com/digitalocean/captainslog/blob/master/CONTRIBUTING.md).
 
 ## License
 Copyright 2016 DigitalOcean
