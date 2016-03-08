@@ -39,7 +39,7 @@ type TagRangeMutator struct {
 }
 
 func NewTagRangeMutator(selectMatcher, startMatcher, endMatcher func(msg *SyslogMsg) bool,
-	tagKey, tagValue string) *TagRangeMutator {
+	tagKey, tagValue string, ttlSeconds, reapIntervalSeconds int) *TagRangeMutator {
 	tr := &TagRangeMutator{
 		selectMatcher: selectMatcher,
 		startMatcher:  startMatcher,
@@ -47,14 +47,14 @@ func NewTagRangeMutator(selectMatcher, startMatcher, endMatcher func(msg *Syslog
 		tagKey:        tagKey,
 		tagValue:      tagValue,
 		trackingDB:    make(map[string]time.Time),
-		ttl:           60 * time.Second,
-		reapInterval:  10 * time.Second,
+		ttl:           time.Duration(ttlSeconds) * time.Second,
+		reapInterval:  time.Duration(reapIntervalSeconds) * time.Second,
 		mutex:         &sync.Mutex{},
 	}
 
 	go func() {
 		for {
-			time.Sleep(time.Second * tr.reapInterval)
+			time.Sleep(tr.reapInterval)
 			tr.reap()
 		}
 	}()

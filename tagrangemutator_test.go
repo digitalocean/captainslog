@@ -41,7 +41,8 @@ func TestTagRangeMutatorMutate(t *testing.T) {
 	mutator := NewTagRangeMutator(
 		TagMatcher("kernel:"),
 		ContentContainsMatcher("[ cut here ]"),
-		ContentContainsMatcher("[ end trace"))
+		ContentContainsMatcher("[ end trace"),
+		"tags", "trace", 60, 30)
 
 	for i, v := range cases {
 		original := NewSyslogMsg()
@@ -59,6 +60,29 @@ func TestTagRangeMutatorMutate(t *testing.T) {
 
 		if want, got := v.result, hasTagsKey; want != got {
 			t.Errorf("case %d: want '%v', got '%v'", i, want, got)
+		}
+	}
+}
+
+func BenchmarkTagRangeMutatorMutate(b *testing.B) {
+	m := []byte("<4>2016-03-08T14:59:36.293816+00:00 host.example.com kernel: [15803005.789011] ------------[ cut here ]------------\n")
+
+	mutator := NewTagRangeMutator(
+		TagMatcher("kernel:"),
+		ContentContainsMatcher("[ cut here ]"),
+		ContentContainsMatcher("[ end trace"),
+		"tags", "trace", 60, 30)
+
+	for i := 0; i < b.N; i++ {
+		original := NewSyslogMsg()
+		err := Unmarshal(m, &original)
+		if err != nil {
+			panic(err)
+		}
+
+		_, err = mutator.Mutate(original)
+		if err != nil {
+			panic(err)
 		}
 	}
 }
