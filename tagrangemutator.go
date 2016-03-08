@@ -7,14 +7,18 @@ import (
 	"time"
 )
 
+// getMsgID creates a key for a log line from
+// it's hostname and program name tag
 func getMsgID(msg *SyslogMsg) string {
 	return fmt.Sprintf("%s!%s", msg.Host, msg.Tag)
 }
 
+// TagMatcher is a matcher that matches on RFC3164 tag
 type TagMatcher struct {
 	match string
 }
 
+// Match applies the match to a SyslogMsg
 func (t *TagMatcher) Match(msg *SyslogMsg) bool {
 	if msg.Tag == t.match {
 		return true
@@ -22,22 +26,33 @@ func (t *TagMatcher) Match(msg *SyslogMsg) bool {
 	return false
 }
 
+// NewTagMatcher creates a TagMatcher that tries
+// to match on the supplied string
 func NewTagMatcher(match string) Matcher {
 	return &TagMatcher{match: match}
 }
 
+// ContentContainsMatcher matches when the Content
+// field of a SyslogMsg contains the supplied string
 type ContentContainsMatcher struct {
 	match string
 }
 
+// Match applies the match to a SyslogMsg
 func (c *ContentContainsMatcher) Match(msg *SyslogMsg) bool {
 	return strings.Contains(msg.Content, c.match)
 }
 
+// NewContentContainsMatcher creates a ContentContainsMatcher that
+// tries to match on the supplied string
 func NewContentContainsMatcher(match string) Matcher {
 	return &ContentContainsMatcher{match: match}
 }
 
+// TagRangeMutator is a Mutator implementation that tags
+// log lines that meet a selection criteria and are logged
+// between a start and end match. Matches are performed by
+// implementations of the Matcher interface.
 type TagRangeMutator struct {
 	selectMatcher Matcher
 	startMatcher  Matcher
@@ -50,6 +65,16 @@ type TagRangeMutator struct {
 	mutex         *sync.Mutex
 }
 
+// NewTagRangeMutator accepts a Matcher to select which logs lines the
+// mutator should scan, and a start and end Matcher to denote the lines
+// that designate the start and end of a match. All lines that match
+// the selection criteria and are either the start and end match or
+// log lines in between them will be tagged. The tag is designated by
+// the tagValue argument. The tag array will exist at the key tagKey.
+// ttlSeconds denotes how long a host / program name combination should
+// be watched for the end match after a start match. reapIntervalSeconds
+// designates how often the reaper routine that checks for expired
+// matches should run.
 func NewTagRangeMutator(selectMatcher, startMatcher, endMatcher Matcher,
 	tagKey, tagValue string, ttlSeconds, reapIntervalSeconds int) *TagRangeMutator {
 	tr := &TagRangeMutator{
@@ -74,6 +99,7 @@ func NewTagRangeMutator(selectMatcher, startMatcher, endMatcher Matcher,
 	return tr
 }
 
+// reap reaps expired keys from the trackingDB
 func (m *TagRangeMutator) reap() {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
@@ -86,6 +112,7 @@ func (m *TagRangeMutator) reap() {
 	}
 }
 
+// Mutate accepts a SyslogMsg and applies the Mutator to it.
 func (m *TagRangeMutator) Mutate(msg SyslogMsg) (SyslogMsg, error) {
 	var err error
 

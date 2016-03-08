@@ -13,6 +13,7 @@ type Mutator interface {
 	Mutate(SyslogMsg) (SyslogMsg, error)
 }
 
+// Matcher accepts a SyslogMsg and returns true of it matches
 type Matcher interface {
 	Match(msg *SyslogMsg) bool
 }
