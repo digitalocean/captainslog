@@ -11,25 +11,37 @@ func getMsgID(msg *SyslogMsg) string {
 	return fmt.Sprintf("%s!%s", msg.Host, msg.Tag)
 }
 
-func TagMatcher(tag string) func(msg *SyslogMsg) bool {
-	return func(msg *SyslogMsg) bool {
-		if msg.Tag == tag {
-			return true
-		}
-		return false
-	}
+type TagMatcher struct {
+	match string
 }
 
-func ContentContainsMatcher(contains string) func(msg *SyslogMsg) bool {
-	return func(msg *SyslogMsg) bool {
-		return strings.Contains(msg.Content, contains)
+func (t *TagMatcher) Match(msg *SyslogMsg) bool {
+	if msg.Tag == t.match {
+		return true
 	}
+	return false
+}
+
+func NewTagMatcher(match string) Matcher {
+	return &TagMatcher{match: match}
+}
+
+type ContentContainsMatcher struct {
+	match string
+}
+
+func (c *ContentContainsMatcher) Match(msg *SyslogMsg) bool {
+	return strings.Contains(msg.Content, c.match)
+}
+
+func NewContentContainsMatcher(match string) Matcher {
+	return &ContentContainsMatcher{match: match}
 }
 
 type TagRangeMutator struct {
-	selectMatcher func(msg *SyslogMsg) bool
-	startMatcher  func(msg *SyslogMsg) bool
-	endMatcher    func(msg *SyslogMsg) bool
+	selectMatcher Matcher
+	startMatcher  Matcher
+	endMatcher    Matcher
 	tagKey        string
 	tagValue      string
 	trackingDB    map[string]time.Time
@@ -38,7 +50,7 @@ type TagRangeMutator struct {
 	mutex         *sync.Mutex
 }
 
-func NewTagRangeMutator(selectMatcher, startMatcher, endMatcher func(msg *SyslogMsg) bool,
+func NewTagRangeMutator(selectMatcher, startMatcher, endMatcher Matcher,
 	tagKey, tagValue string, ttlSeconds, reapIntervalSeconds int) *TagRangeMutator {
 	tr := &TagRangeMutator{
 		selectMatcher: selectMatcher,
@@ -77,7 +89,7 @@ func (m *TagRangeMutator) reap() {
 func (m *TagRangeMutator) Mutate(msg SyslogMsg) (SyslogMsg, error) {
 	var err error
 
-	if !m.selectMatcher(&msg) {
+	if !m.selectMatcher.Match(&msg) {
 		return msg, err
 	}
 
@@ -89,11 +101,11 @@ func (m *TagRangeMutator) Mutate(msg SyslogMsg) (SyslogMsg, error) {
 
 	if _, ok := m.trackingDB[logID]; ok {
 		tagIt = true
-		if m.endMatcher(&msg) {
+		if m.endMatcher.Match(&msg) {
 			delete(m.trackingDB, logID)
 		}
 	} else {
-		if m.startMatcher(&msg) {
+		if m.startMatcher.Match(&msg) {
 			tagIt = true
 			m.trackingDB[logID] = time.Now()
 		}

@@ -13,6 +13,10 @@ type Mutator interface {
 	Mutate(SyslogMsg) (SyslogMsg, error)
 }
 
+type Matcher interface {
+	Match(msg *SyslogMsg) bool
+}
+
 // OutputAdapter is an interface for adapters that provide
 // specific functionality to OutputChannelers. They
 // are transport adapters - for instance, TCPOutputAdapter
