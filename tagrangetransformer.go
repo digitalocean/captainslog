@@ -13,6 +13,42 @@ func getMsgID(msg *SyslogMsg) string {
 	return fmt.Sprintf("%s!%s", msg.Host, msg.Tag)
 }
 
+// TagArrayMutator is a Mutator that modifies a syslog message
+// by adding a tag value to an array of tags.
+type TagArrayMutator struct {
+	tagKey   string
+	tagValue string
+}
+
+// NewTagArrayMutator constructs a new TagArrayMutator from a supplied
+// key and value. The tag will be added to the array at the key if
+// it exists - if the key does not exist in the SyslogMsg's JSONValues
+// map, it will be  created.
+func NewTagArrayMutator(tagKey, tagValue string) Mutator {
+	return &TagArrayMutator{
+		tagKey:   tagKey,
+		tagValue: tagValue,
+	}
+}
+
+// Mutate modifies the SyslogMsg passed by reference
+func (t *TagArrayMutator) Mutate(msg *SyslogMsg) error {
+	var err error
+
+	if _, ok := msg.JSONValues[t.tagKey]; !ok {
+		msg.JSONValues[t.tagKey] = make([]interface{}, 0)
+	}
+
+	switch val := msg.JSONValues[t.tagKey].(type) {
+	case []interface{}:
+		msg.JSONValues[t.tagKey] = append(val, t.tagValue)
+		return err
+	default:
+		err = fmt.Errorf("tags key in message was not an array")
+		return err
+	}
+}
+
 // TagMatcher is a matcher that matches on RFC3164 tag
 type TagMatcher struct {
 	match string
@@ -57,8 +93,7 @@ type TagRangeTransformer struct {
 	selectMatcher Matcher
 	startMatcher  Matcher
 	endMatcher    Matcher
-	tagKey        string
-	tagValue      string
+	tagger        Mutator
 	trackingDB    map[string]time.Time
 	ttl           time.Duration
 	reapInterval  time.Duration
@@ -69,20 +104,14 @@ type TagRangeTransformer struct {
 // mutator should scan, and a start and end Matcher to denote the lines
 // that designate the start and end of a match. All lines that match
 // the selection criteria and are either the start and end match or
-// log lines in between them will be tagged. The tag is designated by
-// the tagValue argument. The tag array will exist at the key tagKey.
-// ttlSeconds denotes how long a host / program name combination should
-// be watched for the end match after a start match. reapIntervalSeconds
-// designates how often the reaper routine that checks for expired
-// matches should run.
+// log lines in between them will be tagged.
 func NewTagRangeTransformer(selectMatcher, startMatcher, endMatcher Matcher,
-	tagKey, tagValue string, ttlSeconds, reapIntervalSeconds int) *TagRangeTransformer {
+	tagger Mutator, ttlSeconds, reapIntervalSeconds int) *TagRangeTransformer {
 	tr := &TagRangeTransformer{
 		selectMatcher: selectMatcher,
 		startMatcher:  startMatcher,
 		endMatcher:    endMatcher,
-		tagKey:        tagKey,
-		tagValue:      tagValue,
+		tagger:        tagger,
 		trackingDB:    make(map[string]time.Time),
 		ttl:           time.Duration(ttlSeconds) * time.Second,
 		reapInterval:  time.Duration(reapIntervalSeconds) * time.Second,
@@ -142,16 +171,6 @@ func (m *TagRangeTransformer) Transform(msg SyslogMsg) (SyslogMsg, error) {
 		return msg, err
 	}
 
-	if _, ok := msg.JSONValues[m.tagKey]; !ok {
-		msg.JSONValues[m.tagKey] = make([]interface{}, 0)
-	}
-
-	switch val := msg.JSONValues[m.tagKey].(type) {
-	case []interface{}:
-		msg.JSONValues[m.tagKey] = append(val, m.tagValue)
-		return msg, err
-	default:
-		err = fmt.Errorf("tags key in message was not an array")
-		return msg, err
-	}
+	err = m.tagger.Mutate(&msg)
+	return msg, err
 }

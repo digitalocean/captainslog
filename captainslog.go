@@ -13,6 +13,11 @@ type Transformer interface {
 	Transform(SyslogMsg) (SyslogMsg, error)
 }
 
+// Mutator accepts a pointer to a SyslogMsg and modifies it in place
+type Mutator interface {
+	Mutate(*SyslogMsg) error
+}
+
 // Matcher accepts a SyslogMsg and returns true if it matches
 type Matcher interface {
 	Match(msg *SyslogMsg) bool
