@@ -13,7 +13,7 @@ type Transformer interface {
 	Transform(SyslogMsg) (SyslogMsg, error)
 }
 
-// Matcher accepts a SyslogMsg and returns true of it matches
+// Matcher accepts a SyslogMsg and returns true if it matches
 type Matcher interface {
 	Match(msg *SyslogMsg) bool
 }
