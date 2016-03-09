@@ -41,7 +41,7 @@ func (m *JSONKeyTransformer) recurseTransformMap(in, out map[string]interface{})
 	}
 }
 
-// recursetransformArr is a helper method to visit multi-level JSON used by recureTransforMap
+// recurseTransformArr is a helper method to visit multi-level JSON used by recurseTransformMap
 func (m *JSONKeyTransformer) recurseTransformArr(in, out []interface{}) {
 	for i, v := range in {
 		switch cv := v.(type) {
