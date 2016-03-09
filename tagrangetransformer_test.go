@@ -42,7 +42,8 @@ func TestTagRangeTransformerTransform(t *testing.T) {
 		NewTagMatcher("kernel:"),
 		NewContentContainsMatcher("[ cut here ]"),
 		NewContentContainsMatcher("[ end trace"),
-		"tags", "trace", 60, 30)
+		NewTagArrayMutator("tags", "trace"),
+		60, 30)
 
 	for i, v := range cases {
 		original := NewSyslogMsg()
@@ -71,7 +72,8 @@ func BenchmarkTagRangeTransformerTransform(b *testing.B) {
 		NewTagMatcher("kernel:"),
 		NewContentContainsMatcher("[ cut here ]"),
 		NewContentContainsMatcher("[ end trace"),
-		"tags", "trace", 60, 30)
+		NewTagArrayMutator("tags", "trace"),
+		60, 30)
 
 	for i := 0; i < b.N; i++ {
 		original := NewSyslogMsg()
