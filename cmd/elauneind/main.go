@@ -69,7 +69,7 @@ func main() {
 		go func() {
 			reader := bufio.NewReader(conn)
 			replacer := strings.NewReplacer(".", "_")
-			mutator := captainslog.NewJSONKeyMutator(replacer)
+			transformer := captainslog.NewJSONKeyTransformer(replacer)
 
 			for {
 				b, err := reader.ReadBytes('\n')
@@ -94,17 +94,17 @@ func main() {
 					continue
 				}
 
-				mutated, err := mutator.Mutate(original)
+				transformed, err := transformer.Transform(original)
 				if err != nil {
 					ceelog.ErrorWithFields(captainslog.Fields{
-						"component": "mutator",
-						"action":    "Mutate",
+						"component": "transformer",
+						"action":    "Transform",
 						"msg":       err})
 
 					continue
 				}
 
-				o.OutChan <- &mutated
+				o.OutChan <- &transformed
 			}
 		}()
 	}

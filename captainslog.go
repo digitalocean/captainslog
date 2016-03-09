@@ -3,14 +3,19 @@ package captainslog
 import "errors"
 
 var (
-	// ErrMutate is returned by a Mutator when it cannot
+	// ErrTransform is returned by a Transformer when it cannot
 	// perform its function
-	ErrMutate = errors.New("mutate error")
+	ErrTransform = errors.New("transform error")
 )
 
-// Mutator accept a SyslogMsg, and return a modified SyslogMsg
-type Mutator interface {
-	Mutate(SyslogMsg) (SyslogMsg, error)
+// Transformer accept a SyslogMsg, and return a modified SyslogMsg
+type Transformer interface {
+	Transform(SyslogMsg) (SyslogMsg, error)
+}
+
+// Matcher accepts a SyslogMsg and returns true if it matches
+type Matcher interface {
+	Match(msg *SyslogMsg) bool
 }
 
 // OutputAdapter is an interface for adapters that provide

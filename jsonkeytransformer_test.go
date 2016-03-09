@@ -6,17 +6,17 @@ import (
 	"testing"
 )
 
-func checkMutateInterface(m Mutator) {
+func checkTransformInterface(m Transformer) {
 	return
 }
 
-func TestJSONKeyMutatorIsMutator(t *testing.T) {
+func TestJSONKeyTransformerIsTransformer(t *testing.T) {
 	replacer := strings.NewReplacer(".", "_")
-	mutator := NewJSONKeyMutator(replacer)
-	checkMutateInterface(mutator)
+	mutator := NewJSONKeyTransformer(replacer)
+	checkTransformInterface(mutator)
 }
 
-func TestJSONKeyMutatorMutate(t *testing.T) {
+func TestJSONKeyTransformerTransform(t *testing.T) {
 	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: @cee:{\"first.name\":\"captain\",\"one.two.three\":\"four.five.six\"}\n")
 
 	var original SyslogMsg
@@ -26,9 +26,9 @@ func TestJSONKeyMutatorMutate(t *testing.T) {
 	}
 
 	replacer := strings.NewReplacer(".", "_")
-	mutator := NewJSONKeyMutator(replacer)
+	mutator := NewJSONKeyTransformer(replacer)
 
-	mutated, err := mutator.Mutate(original)
+	mutated, err := mutator.Transform(original)
 	if err != nil {
 		t.Error(err)
 	}
@@ -38,7 +38,7 @@ func TestJSONKeyMutatorMutate(t *testing.T) {
 	}
 }
 
-func TestJSONKeyMutatorMutateNotCee(t *testing.T) {
+func TestJSONKeyTransformerTransformNotCee(t *testing.T) {
 	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: not a json message\n")
 
 	var original SyslogMsg
@@ -48,16 +48,16 @@ func TestJSONKeyMutatorMutateNotCee(t *testing.T) {
 	}
 
 	replacer := strings.NewReplacer(".", "_")
-	mutator := NewJSONKeyMutator(replacer)
+	mutator := NewJSONKeyTransformer(replacer)
 
-	_, err = mutator.Mutate(original)
+	_, err = mutator.Transform(original)
 
-	if want, got := ErrMutate, err; want != got {
+	if want, got := ErrTransform, err; want != got {
 		t.Errorf("want '%v', got '%v'", want, got)
 	}
 }
 
-func TestJSONKeyMutatorMutateMultilevelJSON(t *testing.T) {
+func TestJSONKeyTransformerTransformMultilevelJSON(t *testing.T) {
 	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: @cee:{\"params.name.first\":\"captain\",\"params.name.last\":\"morgan\",\"params.name.ident\":[47],\"sub.arr\":[{\"arr.obj1\":\"val1\"},{\"arr.obj2\":\"val2\"},17],\"sub.obj\":{\"foo.bar\":27,\"bar\":\"baz\"}}\n")
 
 	var original SyslogMsg
@@ -67,9 +67,9 @@ func TestJSONKeyMutatorMutateMultilevelJSON(t *testing.T) {
 	}
 
 	replacer := strings.NewReplacer(".", "_")
-	mutator := NewJSONKeyMutator(replacer)
+	mutator := NewJSONKeyTransformer(replacer)
 
-	mutated, err := mutator.Mutate(original)
+	mutated, err := mutator.Transform(original)
 	if err != nil {
 		t.Error(err)
 	}
@@ -79,7 +79,7 @@ func TestJSONKeyMutatorMutateMultilevelJSON(t *testing.T) {
 	}
 }
 
-func ExampleJSONKeyMutator() {
+func ExampleJSONKeyTransformer() {
 	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: @cee:{\"first.name\":\"captain\"}\n")
 
 	var original SyslogMsg
@@ -89,9 +89,9 @@ func ExampleJSONKeyMutator() {
 	}
 
 	replacer := strings.NewReplacer(".", "_")
-	mutator := NewJSONKeyMutator(replacer)
+	mutator := NewJSONKeyTransformer(replacer)
 
-	mutated, err := mutator.Mutate(original)
+	mutated, err := mutator.Transform(original)
 	if err != nil {
 		panic(err)
 	}
@@ -100,11 +100,11 @@ func ExampleJSONKeyMutator() {
 	// Output: {"first_name":"captain"}
 }
 
-func BenchmarkJSONKeyMutatorMutate(b *testing.B) {
+func BenchmarkJSONKeyTransformerTransform(b *testing.B) {
 	m := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: @cee:{\"first.name\":\"captain\"}\n")
 
 	replacer := strings.NewReplacer(".", "_")
-	mutator := NewJSONKeyMutator(replacer)
+	mutator := NewJSONKeyTransformer(replacer)
 
 	for i := 0; i < b.N; i++ {
 		var original SyslogMsg
@@ -113,7 +113,7 @@ func BenchmarkJSONKeyMutatorMutate(b *testing.B) {
 			panic(err)
 		}
 
-		_, err = mutator.Mutate(original)
+		_, err = mutator.Transform(original)
 		if err != nil {
 			panic(err)
 		}
