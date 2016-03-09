@@ -49,11 +49,11 @@ func NewContentContainsMatcher(match string) Matcher {
 	return &ContentContainsMatcher{match: match}
 }
 
-// TagRangeMutator is a Mutator implementation that tags
+// TagRangeTransformer is a Transformer implementation that tags
 // log lines that meet a selection criteria and are logged
 // between a start and end match. Matches are performed by
 // implementations of the Matcher interface.
-type TagRangeMutator struct {
+type TagRangeTransformer struct {
 	selectMatcher Matcher
 	startMatcher  Matcher
 	endMatcher    Matcher
@@ -65,7 +65,7 @@ type TagRangeMutator struct {
 	mutex         *sync.Mutex
 }
 
-// NewTagRangeMutator accepts a Matcher to select which logs lines the
+// NewTagRangeTransformer accepts a Matcher to select which logs lines the
 // mutator should scan, and a start and end Matcher to denote the lines
 // that designate the start and end of a match. All lines that match
 // the selection criteria and are either the start and end match or
@@ -75,9 +75,9 @@ type TagRangeMutator struct {
 // be watched for the end match after a start match. reapIntervalSeconds
 // designates how often the reaper routine that checks for expired
 // matches should run.
-func NewTagRangeMutator(selectMatcher, startMatcher, endMatcher Matcher,
-	tagKey, tagValue string, ttlSeconds, reapIntervalSeconds int) *TagRangeMutator {
-	tr := &TagRangeMutator{
+func NewTagRangeTransformer(selectMatcher, startMatcher, endMatcher Matcher,
+	tagKey, tagValue string, ttlSeconds, reapIntervalSeconds int) *TagRangeTransformer {
+	tr := &TagRangeTransformer{
 		selectMatcher: selectMatcher,
 		startMatcher:  startMatcher,
 		endMatcher:    endMatcher,
@@ -100,7 +100,7 @@ func NewTagRangeMutator(selectMatcher, startMatcher, endMatcher Matcher,
 }
 
 // reap reaps expired keys from the trackingDB
-func (m *TagRangeMutator) reap() {
+func (m *TagRangeTransformer) reap() {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
@@ -112,8 +112,8 @@ func (m *TagRangeMutator) reap() {
 	}
 }
 
-// Mutate accepts a SyslogMsg and applies the Mutator to it.
-func (m *TagRangeMutator) Mutate(msg SyslogMsg) (SyslogMsg, error) {
+// Transform accepts a SyslogMsg and applies the Transformer to it.
+func (m *TagRangeTransformer) Transform(msg SyslogMsg) (SyslogMsg, error) {
 	var err error
 
 	if !m.selectMatcher.Match(&msg) {

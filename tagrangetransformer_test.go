@@ -2,7 +2,7 @@ package captainslog
 
 import "testing"
 
-func TestTagRangeMutatorIsMutator(t *testing.T) {
+func TestTagRangeTransformerIsTransformer(t *testing.T) {
 }
 
 type testCase struct {
@@ -10,7 +10,7 @@ type testCase struct {
 	result bool
 }
 
-func TestTagRangeMutatorMutate(t *testing.T) {
+func TestTagRangeTransformerTransform(t *testing.T) {
 	cases := []testCase{
 		testCase{
 			input:  []byte("<4>2016-03-08T14:59:36.293816+00:00 host.example.com kernel: [15803005.789010] this line is not part of the trace\n"),
@@ -38,7 +38,7 @@ func TestTagRangeMutatorMutate(t *testing.T) {
 		},
 	}
 
-	mutator := NewTagRangeMutator(
+	mutator := NewTagRangeTransformer(
 		NewTagMatcher("kernel:"),
 		NewContentContainsMatcher("[ cut here ]"),
 		NewContentContainsMatcher("[ end trace"),
@@ -51,7 +51,7 @@ func TestTagRangeMutatorMutate(t *testing.T) {
 			t.Error(err)
 		}
 
-		mutated, err := mutator.Mutate(original)
+		mutated, err := mutator.Transform(original)
 		if err != nil {
 			t.Error(err)
 		}
@@ -64,10 +64,10 @@ func TestTagRangeMutatorMutate(t *testing.T) {
 	}
 }
 
-func BenchmarkTagRangeMutatorMutate(b *testing.B) {
+func BenchmarkTagRangeTransformerTransform(b *testing.B) {
 	m := []byte("<4>2016-03-08T14:59:36.293816+00:00 host.example.com kernel: [15803005.789011] ------------[ cut here ]------------\n")
 
-	mutator := NewTagRangeMutator(
+	mutator := NewTagRangeTransformer(
 		NewTagMatcher("kernel:"),
 		NewContentContainsMatcher("[ cut here ]"),
 		NewContentContainsMatcher("[ end trace"),
@@ -80,7 +80,7 @@ func BenchmarkTagRangeMutatorMutate(b *testing.B) {
 			panic(err)
 		}
 
-		_, err = mutator.Mutate(original)
+		_, err = mutator.Transform(original)
 		if err != nil {
 			panic(err)
 		}
