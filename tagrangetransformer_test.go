@@ -39,7 +39,7 @@ func TestRangeTransformerTTL(t *testing.T) {
 		t.Errorf("want '%v', got '%v'", want, got)
 	}
 
-	time.Sleep(1 * time.Second)
+	time.Sleep(2 * time.Second)
 
 	if want, got := 0, len(transformer.trackingDB); want != got {
 		t.Errorf("want '%v', got '%v'", want, got)
