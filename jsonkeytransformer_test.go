@@ -6,16 +6,6 @@ import (
 	"testing"
 )
 
-func checkTransformInterface(m Transformer) {
-	return
-}
-
-func TestJSONKeyTransformerIsTransformer(t *testing.T) {
-	replacer := strings.NewReplacer(".", "_")
-	mutator := NewJSONKeyTransformer(replacer)
-	checkTransformInterface(mutator)
-}
-
 func TestJSONKeyTransformerTransform(t *testing.T) {
 	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: @cee:{\"first.name\":\"captain\",\"one.two.three\":\"four.five.six\"}\n")
 

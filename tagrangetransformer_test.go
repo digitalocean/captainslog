@@ -1,13 +1,55 @@
 package captainslog
 
-import "testing"
-
-func TestTagRangeTransformerIsTransformer(t *testing.T) {
-}
+import (
+	"testing"
+	"time"
+)
 
 type testCase struct {
 	input  []byte
 	result bool
+}
+
+func TestRangeTransformerTTL(t *testing.T) {
+	input := []byte("<4>2016-03-08T14:59:36.293816+00:00 host.example.com kernel: [15803005.789011] ------------[ cut here ]------------\n")
+
+	transformer := NewTagRangeTransformer(
+		NewTagMatcher("kernel:"),
+		NewContentContainsMatcher("[ cut here ]"),
+		NewContentContainsMatcher("[ end trace"),
+		NewTagArrayMutator("tags", "trace"),
+		1, 1)
+
+	original := NewSyslogMsg()
+	err := Unmarshal(input, &original)
+	if err != nil {
+		t.Error(err)
+	}
+
+	transformer.mutex.Lock()
+	if want, got := 0, len(transformer.trackingDB); want != got {
+		t.Errorf("want '%v', got '%v'", want, got)
+	}
+	transformer.mutex.Unlock()
+
+	_, err = transformer.Transform(original)
+	if err != nil {
+		t.Error(err)
+	}
+
+	transformer.mutex.Lock()
+	if want, got := 1, len(transformer.trackingDB); want != got {
+		t.Errorf("want '%v', got '%v'", want, got)
+	}
+	transformer.mutex.Unlock()
+
+	time.Sleep(2 * time.Second)
+
+	transformer.mutex.Lock()
+	if want, got := 0, len(transformer.trackingDB); want != got {
+		t.Errorf("want '%v', got '%v'", want, got)
+	}
+	transformer.mutex.Unlock()
 }
 
 func TestTagRangeTransformerTransform(t *testing.T) {
@@ -38,7 +80,7 @@ func TestTagRangeTransformerTransform(t *testing.T) {
 		},
 	}
 
-	mutator := NewTagRangeTransformer(
+	transformer := NewTagRangeTransformer(
 		NewTagMatcher("kernel:"),
 		NewContentContainsMatcher("[ cut here ]"),
 		NewContentContainsMatcher("[ end trace"),
@@ -52,7 +94,7 @@ func TestTagRangeTransformerTransform(t *testing.T) {
 			t.Error(err)
 		}
 
-		mutated, err := mutator.Transform(original)
+		mutated, err := transformer.Transform(original)
 		if err != nil {
 			t.Error(err)
 		}
@@ -68,7 +110,7 @@ func TestTagRangeTransformerTransform(t *testing.T) {
 func BenchmarkTagRangeTransformerTransform(b *testing.B) {
 	m := []byte("<4>2016-03-08T14:59:36.293816+00:00 host.example.com kernel: [15803005.789011] ------------[ cut here ]------------\n")
 
-	mutator := NewTagRangeTransformer(
+	transformer := NewTagRangeTransformer(
 		NewTagMatcher("kernel:"),
 		NewContentContainsMatcher("[ cut here ]"),
 		NewContentContainsMatcher("[ end trace"),
@@ -82,7 +124,7 @@ func BenchmarkTagRangeTransformerTransform(b *testing.B) {
 			panic(err)
 		}
 
-		_, err = mutator.Transform(original)
+		_, err = transformer.Transform(original)
 		if err != nil {
 			panic(err)
 		}

@@ -135,7 +135,7 @@ func (m *TagRangeTransformer) reap() {
 
 	for k, v := range m.trackingDB {
 		duration := time.Since(v)
-		if duration.Minutes() > m.ttl.Minutes() {
+		if duration.Seconds() > m.ttl.Seconds() {
 			delete(m.trackingDB, k)
 		}
 	}
