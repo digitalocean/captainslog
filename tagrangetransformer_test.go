@@ -26,24 +26,30 @@ func TestRangeTransformerTTL(t *testing.T) {
 		t.Error(err)
 	}
 
+	transformer.mutex.Lock()
 	if want, got := 0, len(transformer.trackingDB); want != got {
 		t.Errorf("want '%v', got '%v'", want, got)
 	}
+	transformer.mutex.Unlock()
 
 	_, err = transformer.Transform(original)
 	if err != nil {
 		t.Error(err)
 	}
 
+	transformer.mutex.Lock()
 	if want, got := 1, len(transformer.trackingDB); want != got {
 		t.Errorf("want '%v', got '%v'", want, got)
 	}
+	transformer.mutex.Unlock()
 
 	time.Sleep(2 * time.Second)
 
+	transformer.mutex.Lock()
 	if want, got := 0, len(transformer.trackingDB); want != got {
 		t.Errorf("want '%v', got '%v'", want, got)
 	}
+	transformer.mutex.Unlock()
 }
 
 func TestTagRangeTransformerTransform(t *testing.T) {
