@@ -3,6 +3,7 @@ package captainslog
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -36,7 +37,18 @@ func (s *SyslogMsg) String() string {
 		}
 		content = string(b)
 	} else {
-		content = s.Content
+		if len(s.JSONValues) > 0 {
+			s.JSONValues["msg"] = strings.TrimLeft(s.Content, " ")
+			s.IsCee = true
+			s.Cee = " @cee:"
+			b, err := json.Marshal(s.JSONValues)
+			if err != nil {
+				panic(err)
+			}
+			content = string(b)
+		} else {
+			content = s.Content
+		}
 	}
 	return fmt.Sprintf("<%d>%s %s %s%s%s\n", s.Pri.Priority, s.Time.Format(s.timeFormat), s.Host, s.Tag, s.Cee, content)
 }
