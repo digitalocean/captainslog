@@ -77,6 +77,10 @@ func (p *parser) parsePri() error {
 	p.cur++
 	p.tokenStart = p.cur
 
+	if p.buf[p.cur] == priEnd {
+		return ErrBadPriority
+	}
+
 	for p.buf[p.cur] != priEnd {
 		if !isNum(p.buf[p.cur]) {
 			return ErrBadPriority
