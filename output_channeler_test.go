@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func TestOutputChannelerWithTCPOutputAdapter(t *testing.T) {
+func TestOutputChannelerWithTCPOutputter(t *testing.T) {
 	testMsg := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: hello world\n")
 	var msg SyslogMsg
 	err := Unmarshal(testMsg, &msg)
@@ -48,7 +48,7 @@ func TestOutputChannelerWithTCPOutputAdapter(t *testing.T) {
 		wg.Done()
 	}()
 
-	a := NewTCPOutputAdapter(address, retryInterval)
+	a := NewTCPOutputter(address, retryInterval)
 	o := NewOutputChanneler(a)
 
 	o.OutChan <- &msg
