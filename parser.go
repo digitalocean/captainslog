@@ -188,8 +188,15 @@ func (p *parser) parseCee() {
 	p.tokenStart = p.cur
 	cur := p.cur
 
+	if cur >= len(p.buf)-1 {
+		return
+	}
+
 	for p.buf[cur] == ' ' {
 		cur++
+		if cur >= len(p.buf)-1 {
+			return
+		}
 	}
 
 	if cur+4 > p.bufEnd {
@@ -231,6 +238,9 @@ func (p *parser) parseCee() {
 }
 
 func (p *parser) parseContent() error {
+	if p.cur >= len(p.buf)-1 {
+		return ErrBadContent
+	}
 	var err error
 
 	p.tokenStart = p.cur
