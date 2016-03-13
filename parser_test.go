@@ -688,6 +688,7 @@ func BenchmarkParserParse(b *testing.B) {
 	var msg SyslogMsg
 
 	for i := 0; i < b.N; i++ {
+		b.SetBytes(int64(len(m)))
 		err := Unmarshal(m, &msg)
 		if err != nil {
 			panic(err)
