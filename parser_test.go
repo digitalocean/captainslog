@@ -2,7 +2,6 @@ package captainslog
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -312,11 +311,11 @@ func TestUnmarshalCeeEarlyBufferAfterColon(t *testing.T) {
 	var msg SyslogMsg
 	err := Unmarshal(b, &msg)
 
-	if want, got := errors.New("unexpected end of JSON input").Error(), err.Error(); want != got {
+	if want, got := ErrBadContent, err; want != got {
 		t.Errorf("want '%v', got '%v'", want, got)
 	}
 
-	if want, got := false, msg.IsCee; want != got {
+	if want, got := true, msg.IsCee; want != got {
 		t.Errorf("want '%v', got '%v'", want, got)
 	}
 }
@@ -352,16 +351,9 @@ func TestUnmarshalNoContent(t *testing.T) {
 
 	var msg SyslogMsg
 	err := Unmarshal(b, &msg)
-	if err != nil {
-		t.Error(err)
-	}
 
-	if want, got := "", msg.Content; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
-	}
-
-	if want, got := string(b), msg.String(); want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+	if want, got := ErrBadContent, err; want != got {
+		t.Errorf("want '%v', got '%v'", want, got)
 	}
 }
 
@@ -654,6 +646,28 @@ func TestUnmarshalPriNotNumber(t *testing.T) {
 	}
 }
 
+func testFuzzFindings(fuzzData string, t *testing.T) {
+	b := []byte(fuzzData)
+
+	var msg SyslogMsg
+	err := Unmarshal(b, &msg)
+
+	if want, got := false, err == nil; want != got {
+		t.Errorf("want '%v', got '%v'", want, got)
+	}
+}
+
+func TestFuzzFindings(t *testing.T) {
+	inputs := []string{
+		"<0>Mon Jan 00 00:00:000 0 ",
+		"<0>Mon Jan 00 00:00:000 :",
+	}
+
+	for _, fuzzData := range inputs {
+		testFuzzFindings(fuzzData, t)
+	}
+}
+
 func ExampleUnmarshal() {
 	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: hello world\n")
 
@@ -674,6 +688,7 @@ func BenchmarkParserParse(b *testing.B) {
 	var msg SyslogMsg
 
 	for i := 0; i < b.N; i++ {
+		b.SetBytes(int64(len(m)))
 		err := Unmarshal(m, &msg)
 		if err != nil {
 			panic(err)

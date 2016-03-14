@@ -53,7 +53,10 @@ func (p *parser) parse() error {
 		return err
 	}
 
-	p.parseCee()
+	err = p.parseCee()
+	if err != nil {
+		return err
+	}
 
 	err = p.parseContent()
 	return err
@@ -76,6 +79,10 @@ func (p *parser) parsePri() error {
 
 	p.cur++
 	p.tokenStart = p.cur
+
+	if p.buf[p.cur] == priEnd {
+		return ErrBadPriority
+	}
 
 	for p.buf[p.cur] != priEnd {
 		if !isNum(p.buf[p.cur]) {
@@ -180,40 +187,47 @@ func (p *parser) parseTag() error {
 	return err
 }
 
-func (p *parser) parseCee() {
+func (p *parser) parseCee() error {
+	if p.cur >= len(p.buf)-1 {
+		return ErrBadContent
+	}
+
 	p.tokenStart = p.cur
 	cur := p.cur
 
 	for p.buf[cur] == ' ' {
 		cur++
+		if cur >= len(p.buf)-1 {
+			return nil
+		}
 	}
 
 	if cur+4 > p.bufEnd {
-		return
+		return nil
 	}
 
 	if p.buf[cur] != '@' {
-		return
+		return nil
 	}
 
 	cur++
 	if p.buf[cur] != 'c' {
-		return
+		return nil
 	}
 
 	cur++
 	if p.buf[cur] != 'e' {
-		return
+		return nil
 	}
 
 	cur++
 	if p.buf[cur] != 'e' {
-		return
+		return nil
 	}
 
 	cur++
 	if p.buf[cur] != ':' {
-		return
+		return nil
 	}
 
 	cur++
@@ -223,12 +237,15 @@ func (p *parser) parseCee() {
 	p.msg.IsCee = true
 	p.msg.Cee = string(p.buf[p.tokenStart:p.tokenEnd])
 
-	return
+	return nil
 }
 
 func (p *parser) parseContent() error {
-	var err error
+	if p.cur >= len(p.buf)-1 {
+		return ErrBadContent
+	}
 
+	var err error
 	p.tokenStart = p.cur
 
 	for p.buf[p.cur] != '\n' {

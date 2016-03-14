@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func TestOutputChannelerWithTCPOutputter(t *testing.T) {
+func TestTCPOutputter(t *testing.T) {
 	testMsg := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: hello world\n")
 	var msg SyslogMsg
 	err := Unmarshal(testMsg, &msg)
@@ -16,13 +16,14 @@ func TestOutputChannelerWithTCPOutputter(t *testing.T) {
 		t.Error(err)
 	}
 
-	address := "127.0.0.1:45454"
-	retryInterval := 5
+	address := "127.0.0.1:3333"
+	retryInterval := 1
 
 	l, err := net.Listen("tcp", address)
 	if err != nil {
 		t.Error(err)
 	}
+	defer l.Close()
 
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -32,6 +33,7 @@ func TestOutputChannelerWithTCPOutputter(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
+		defer conn.Close()
 
 		reader := bufio.NewReader(conn)
 		line, _, err := reader.ReadLine()
@@ -49,9 +51,19 @@ func TestOutputChannelerWithTCPOutputter(t *testing.T) {
 	}()
 
 	a := NewTCPOutputter(address, retryInterval)
-	o := NewOutputChanneler(a)
+	defer a.Close()
 
-	o.OutChan <- &msg
-	o.CmdChan <- CmdStop
-	wg.Wait()
+	err = a.Connect()
+	if err != nil {
+		t.Error(err)
+	}
+
+	n, err := a.Output(&msg)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if want, got := len(testMsg), n; want != got {
+		t.Errorf("want '%v', got '%v'", want, got)
+	}
 }

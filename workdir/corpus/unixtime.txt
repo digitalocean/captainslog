@@ -1,0 +1,2 @@
+<38>Mon Jan  2 15:04:05 host.example.org test: hello world
+

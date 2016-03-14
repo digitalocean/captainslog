@@ -3,7 +3,7 @@
 ## Introduction
 Captainslog started as an RFC3164 (Syslog) parser written to solve a specific problem: there was a [breaking change](https://www.elastic.co/guide/en/elasticsearch/reference/current/breaking_20_mapping_changes.html#_field_names_may_not_contain_dots) in the 2.0 release of Elasticsearch that no longer allowed periods in field names. In order to support the creation of a log sanitization service for replacing characters in JSON keys within syslog messages, we created a syslog parser along with an interface for writing "mutators" - plugins for modifying syslog messages in a stream.
 
-We are now continuing development along this path, and plan on working on a set of InputAdapter, Transformer, and OutputAdapter interface implemenatations that can be used together for processing syslog messages.
+We are now continuing development along this path, and plan on working on a set of Inputter, Transformer, and Outputter interface implemenatations that can be used together for processing syslog messages.
 
 ## Usage
 ```go

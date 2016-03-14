@@ -23,12 +23,12 @@ type Matcher interface {
 	Match(msg *SyslogMsg) bool
 }
 
-// OutputAdapter is an interface for adapters that provide
+// Outputter is an interface that provides
 // specific functionality to OutputChannelers. They
-// are transport adapters - for instance, TCPOutputAdapter
+// are transport adapters - for instance, TCPOutputter
 // converts *Syslog messages received off a channeler
 // to RFC3164 []byte encoded syslog messages sent over TCP.
-type OutputAdapter interface {
+type Outputter interface {
 	Output(s *SyslogMsg) (int, error)
 	Connect() error
 	RetryInterval() int
