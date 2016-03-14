@@ -653,7 +653,7 @@ func testFuzzFindings(fuzzData string, t *testing.T) {
 	err := Unmarshal(b, &msg)
 
 	if want, got := false, err == nil; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf("want '%v', got '%v'", want, got)
 	}
 }
 
