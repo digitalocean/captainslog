@@ -63,6 +63,26 @@ func TestJSONKeyTransformerTransformMultilevelJSON(t *testing.T) {
 	}
 }
 
+func TestJSONKeyTransformerTransformFloat(t *testing.T) {
+	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: @cee:{\"num.float\":3.0000000000000000000000000000000001,\"num.sci.1\":1e1,\"num.sci.2\":-0.12e+3}\n")
+	original, err := NewSyslogMsgFromBytes(b)
+	if err != nil {
+		t.Error(err)
+	}
+
+	replacer := strings.NewReplacer(".", "_")
+	mutator := NewJSONKeyTransformer(replacer)
+
+	mutated, err := mutator.Transform(original)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if want, got := "{\"num_float\":3.0000000000000000000000000000000001,\"num_sci_1\":1e1,\"num_sci_2\":-0.12e+3}", mutated.Content; want != got {
+		t.Errorf("want '%s', got '%s'", want, got)
+	}
+}
+
 func ExampleJSONKeyTransformer() {
 	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: @cee:{\"first.name\":\"captain\"}\n")
 	original, err := NewSyslogMsgFromBytes(b)

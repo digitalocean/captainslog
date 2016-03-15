@@ -1,6 +1,7 @@
 package captainslog
 
 import (
+	"bytes"
 	"encoding/json"
 	"strings"
 )
@@ -68,7 +69,10 @@ func (m *JSONKeyTransformer) Transform(msg SyslogMsg) (SyslogMsg, error) {
 
 	var contentStructured map[string]interface{}
 
-	err := json.Unmarshal([]byte(msg.Content), &contentStructured)
+	decoder := json.NewDecoder(bytes.NewBuffer([]byte(msg.Content)))
+	decoder.UseNumber()
+
+	err := decoder.Decode(&contentStructured)
 	if err != nil {
 		return msg, err
 	}
