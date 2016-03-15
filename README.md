@@ -18,9 +18,7 @@ import (
 
 func main() {
 	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: @cee:{\"my.message\": \"hello world\"}\n")
-
-	var originalMsg captainslog.SyslogMsg
-	err := captainslog.Unmarshal(b, &originalMsg)
+	originalMsg, err := captainslog.NewSyslogMsgFromBytes(b)
 	if err != nil {
 		panic(err)
 	}
