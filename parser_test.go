@@ -9,9 +9,7 @@ import (
 
 func TestUnmarshal(t *testing.T) {
 	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: hello world\n")
-
-	var msg SyslogMsg
-	err := Unmarshal(b, &msg)
+	msg, err := NewSyslogMsgFromBytes(b)
 	if err != nil {
 		t.Error(err)
 	}
@@ -86,9 +84,7 @@ func TestUnmarshal(t *testing.T) {
 
 func TestUnmarshalDateNoMicros(t *testing.T) {
 	b := []byte("<191>2006-01-02T15:04:05.999-07:00 host.example.org test: hello world\n")
-
-	var msg SyslogMsg
-	err := Unmarshal(b, &msg)
+	msg, err := NewSyslogMsgFromBytes(b)
 	if err != nil {
 		t.Error(err)
 	}
@@ -163,9 +159,7 @@ func TestUnmarshalDateNoMicros(t *testing.T) {
 
 func TestUnmarshalDateNoMillis(t *testing.T) {
 	b := []byte("<171>2015-12-18T18:08:17+00:00 host.example.org test: hello world\n")
-
-	var msg SyslogMsg
-	err := Unmarshal(b, &msg)
+	msg, err := NewSyslogMsgFromBytes(b)
 	if err != nil {
 		t.Error(err)
 	}
@@ -240,9 +234,7 @@ func TestUnmarshalDateNoMillis(t *testing.T) {
 
 func TestUnmarshalCeeSpace(t *testing.T) {
 	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: @cee:{\"a\":\"b\"}\n")
-
-	var msg SyslogMsg
-	err := Unmarshal(b, &msg)
+	msg, err := NewSyslogMsgFromBytes(b)
 	if err != nil {
 		t.Error(err)
 	}
@@ -266,8 +258,7 @@ func TestUnmarshalCeeSpace(t *testing.T) {
 
 func TestUnmarshalCeeNoSpace(t *testing.T) {
 	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test:@cee:{\"a\":\"b\"}\n")
-	var msg SyslogMsg
-	err := Unmarshal(b, &msg)
+	msg, err := NewSyslogMsgFromBytes(b)
 	if err != nil {
 		t.Error(err)
 	}
@@ -287,8 +278,7 @@ func TestUnmarshalCeeNoSpace(t *testing.T) {
 
 func TestUnmarshalCeeEarlyBufferBeforeColon(t *testing.T) {
 	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test:@cee\n")
-	var msg SyslogMsg
-	err := Unmarshal(b, &msg)
+	msg, err := NewSyslogMsgFromBytes(b)
 	if err != nil {
 		t.Error(err)
 	}
@@ -308,8 +298,7 @@ func TestUnmarshalCeeEarlyBufferBeforeColon(t *testing.T) {
 
 func TestUnmarshalCeeEarlyBufferAfterColon(t *testing.T) {
 	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test:@cee:\n")
-	var msg SyslogMsg
-	err := Unmarshal(b, &msg)
+	msg, err := NewSyslogMsgFromBytes(b)
 
 	if want, got := ErrBadContent, err; want != got {
 		t.Errorf("want '%v', got '%v'", want, got)
@@ -321,8 +310,7 @@ func TestUnmarshalCeeEarlyBufferAfterColon(t *testing.T) {
 }
 
 func unmarshalCeeButNotCee(t *testing.T, b []byte) {
-	var msg SyslogMsg
-	err := Unmarshal(b, &msg)
+	msg, err := NewSyslogMsgFromBytes(b)
 	if err != nil {
 		t.Error(err)
 	}
@@ -348,9 +336,7 @@ func TestUnmarshalCeeButNotCee(t *testing.T) {
 
 func TestUnmarshalNoContent(t *testing.T) {
 	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test:\n")
-
-	var msg SyslogMsg
-	err := Unmarshal(b, &msg)
+	_, err := NewSyslogMsgFromBytes(b)
 
 	if want, got := ErrBadContent, err; want != got {
 		t.Errorf("want '%v', got '%v'", want, got)
@@ -359,9 +345,7 @@ func TestUnmarshalNoContent(t *testing.T) {
 
 func TestUnmarshalTagEndHandling(t *testing.T) {
 	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: hello world\n")
-
-	var msg SyslogMsg
-	err := Unmarshal(b, &msg)
+	msg, err := NewSyslogMsgFromBytes(b)
 	if err != nil {
 		t.Error(err)
 	}
@@ -371,7 +355,7 @@ func TestUnmarshalTagEndHandling(t *testing.T) {
 	}
 
 	b = []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test hello world\n")
-	err = Unmarshal(b, &msg)
+	msg, err = NewSyslogMsgFromBytes(b)
 	if err != nil {
 		t.Error(err)
 	}
@@ -387,9 +371,7 @@ func TestUnmarshalTagEndHandling(t *testing.T) {
 
 func TestUnmarshalUnixTime(t *testing.T) {
 	b := []byte("<38>Mon Jan  2 15:04:05 host.example.org test: hello world\n")
-
-	var msg SyslogMsg
-	err := Unmarshal(b, &msg)
+	msg, err := NewSyslogMsgFromBytes(b)
 	if err != nil {
 		t.Error(err)
 	}
@@ -423,9 +405,7 @@ func TestUnmarshalUnixTime(t *testing.T) {
 
 func TestUnmarshalTimeANSIC(t *testing.T) {
 	b := []byte("<38>Mon Jan  2 15:04:05 2006 host.example.org test: hello world\n")
-
-	var msg SyslogMsg
-	err := Unmarshal(b, &msg)
+	msg, err := NewSyslogMsgFromBytes(b)
 	if err != nil {
 		t.Error(err)
 	}
@@ -459,9 +439,7 @@ func TestUnmarshalTimeANSIC(t *testing.T) {
 
 func TestUnmarshalTimeUnixDate(t *testing.T) {
 	b := []byte("<38>Mon Jan  2 15:04:05 MST 2006 host.example.org test: hello world\n")
-
-	var msg SyslogMsg
-	err := Unmarshal(b, &msg)
+	msg, err := NewSyslogMsgFromBytes(b)
 	if err != nil {
 		t.Error(err)
 	}
@@ -496,9 +474,7 @@ func TestUnmarshalTimeUnixDate(t *testing.T) {
 
 func TestUnmarshalTimeNoYear(t *testing.T) {
 	b := []byte("<38>Mon Jan  2 15:04:05 host.example.org test: hello world\n")
-
-	var msg SyslogMsg
-	err := Unmarshal(b, &msg)
+	msg, err := NewSyslogMsgFromBytes(b)
 	if err != nil {
 		t.Error(err)
 	}
@@ -528,9 +504,7 @@ func TestUnmarshalTimeNoYear(t *testing.T) {
 
 func TestUnmarshalNoPriority(t *testing.T) {
 	b := []byte("2006-01-02T15:04:05.999999-07:00 host.example.org test: hello world\n")
-
-	var msg SyslogMsg
-	err := Unmarshal(b, &msg)
+	_, err := NewSyslogMsgFromBytes(b)
 
 	if want, got := ErrBadPriority, err; want != got {
 		t.Errorf("want '%s', got '%s'", want, got)
@@ -539,9 +513,7 @@ func TestUnmarshalNoPriority(t *testing.T) {
 
 func TestUnmarshalNoPriorityEnd(t *testing.T) {
 	b := []byte("<1912006-01-02T15:04:05.999999-07:00 host.example.org test: hello world\n")
-
-	var msg SyslogMsg
-	err := Unmarshal(b, &msg)
+	_, err := NewSyslogMsgFromBytes(b)
 
 	if want, got := ErrBadPriority, err; want != got {
 		t.Errorf("want '%s', got '%s'", want, got)
@@ -550,9 +522,7 @@ func TestUnmarshalNoPriorityEnd(t *testing.T) {
 
 func TestUnmarshalPriorityTooLong(t *testing.T) {
 	b := []byte("<9999>2006-01-02T15:04:05.999999-07:00 host.example.org test: hello world\n")
-
-	var msg SyslogMsg
-	err := Unmarshal(b, &msg)
+	_, err := NewSyslogMsgFromBytes(b)
 
 	if want, got := ErrBadPriority, err; want != got {
 		t.Errorf("want '%s', got '%s'", want, got)
@@ -561,9 +531,7 @@ func TestUnmarshalPriorityTooLong(t *testing.T) {
 
 func TestUnmarshalPriorityTruncated(t *testing.T) {
 	b := []byte("<99\n")
-
-	var msg SyslogMsg
-	err := Unmarshal(b, &msg)
+	_, err := NewSyslogMsgFromBytes(b)
 
 	if want, got := ErrBadPriority, err; want != got {
 		t.Errorf("want '%s', got '%s'", want, got)
@@ -572,9 +540,7 @@ func TestUnmarshalPriorityTruncated(t *testing.T) {
 
 func TestUnmarshalDateTruncated(t *testing.T) {
 	b := []byte("<191>2006-01-02T15:0")
-
-	var msg SyslogMsg
-	err := Unmarshal(b, &msg)
+	_, err := NewSyslogMsgFromBytes(b)
 
 	if want, got := ErrBadTime, err; want != got {
 		t.Errorf("want '%s', got '%s'", want, got)
@@ -583,9 +549,7 @@ func TestUnmarshalDateTruncated(t *testing.T) {
 
 func TestUnmarshalHostTruncated(t *testing.T) {
 	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.examp")
-
-	var msg SyslogMsg
-	err := Unmarshal(b, &msg)
+	_, err := NewSyslogMsgFromBytes(b)
 
 	if want, got := ErrBadHost, err; want != got {
 		t.Errorf("want '%s', got '%s'", want, got)
@@ -594,9 +558,7 @@ func TestUnmarshalHostTruncated(t *testing.T) {
 
 func TestUnmarshalNoHost(t *testing.T) {
 	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 ")
-
-	var msg SyslogMsg
-	err := Unmarshal(b, &msg)
+	_, err := NewSyslogMsgFromBytes(b)
 
 	if want, got := ErrBadHost, err; want != got {
 		t.Errorf("want '%s', got '%s'", want, got)
@@ -605,9 +567,7 @@ func TestUnmarshalNoHost(t *testing.T) {
 
 func TestUnmarshalTagTruncated(t *testing.T) {
 	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org tes")
-
-	var msg SyslogMsg
-	err := Unmarshal(b, &msg)
+	_, err := NewSyslogMsgFromBytes(b)
 
 	if want, got := ErrBadTag, err; want != got {
 		t.Errorf("want '%s', got '%s'", want, got)
@@ -616,9 +576,7 @@ func TestUnmarshalTagTruncated(t *testing.T) {
 
 func TestUnmarshalNoTag(t *testing.T) {
 	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org ")
-
-	var msg SyslogMsg
-	err := Unmarshal(b, &msg)
+	_, err := NewSyslogMsgFromBytes(b)
 
 	if want, got := ErrBadTag, err; want != got {
 		t.Errorf("want '%s', got '%s'", want, got)
@@ -627,9 +585,7 @@ func TestUnmarshalNoTag(t *testing.T) {
 
 func TestUnmarshalContentNotTerminated(t *testing.T) {
 	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: hello wo")
-
-	var msg SyslogMsg
-	err := Unmarshal(b, &msg)
+	_, err := NewSyslogMsgFromBytes(b)
 
 	if want, got := ErrBadContent, err; want != got {
 		t.Errorf("want '%s', got '%s'", want, got)
@@ -638,8 +594,7 @@ func TestUnmarshalContentNotTerminated(t *testing.T) {
 
 func TestUnmarshalPriNotNumber(t *testing.T) {
 	b := []byte("<1a1>2006-01-02T15:04:05.999999-07:00 host.example.org test: hello world\n")
-	var msg SyslogMsg
-	err := Unmarshal(b, &msg)
+	_, err := NewSyslogMsgFromBytes(b)
 
 	if want, got := ErrBadPriority, err; want != got {
 		t.Errorf("want '%s', got '%s'", want, got)
@@ -648,9 +603,7 @@ func TestUnmarshalPriNotNumber(t *testing.T) {
 
 func testFuzzFindings(fuzzData string, t *testing.T) {
 	b := []byte(fuzzData)
-
-	var msg SyslogMsg
-	err := Unmarshal(b, &msg)
+	_, err := NewSyslogMsgFromBytes(b)
 
 	if want, got := false, err == nil; want != got {
 		t.Errorf("want '%v', got '%v'", want, got)
@@ -670,9 +623,7 @@ func TestFuzzFindings(t *testing.T) {
 
 func ExampleUnmarshal() {
 	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: hello world\n")
-
-	var msg SyslogMsg
-	err := Unmarshal(b, &msg)
+	msg, err := NewSyslogMsgFromBytes(b)
 	if err != nil {
 		panic(err)
 	}
@@ -685,13 +636,14 @@ func ExampleUnmarshal() {
 func BenchmarkParserParse(b *testing.B) {
 	m := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: hello world\n")
 
-	var msg SyslogMsg
-
 	for i := 0; i < b.N; i++ {
 		b.SetBytes(int64(len(m)))
-		err := Unmarshal(m, &msg)
+		msg, err := NewSyslogMsgFromBytes(m)
 		if err != nil {
 			panic(err)
+		}
+		if msg.Content != " hello world" {
+			panic("unexpected msg.Content")
 		}
 	}
 }
@@ -699,12 +651,14 @@ func BenchmarkParserParse(b *testing.B) {
 func BenchmarkParserParseCEE(b *testing.B) {
 	m := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: @cee:{\"a\":\"b\"}\n")
 
-	var msg SyslogMsg
-
 	for i := 0; i < b.N; i++ {
-		err := Unmarshal(m, &msg)
+		b.SetBytes(int64(len(m)))
+		msg, err := NewSyslogMsgFromBytes(m)
 		if err != nil {
 			panic(err)
+		}
+		if msg.Host != "host.example.org" {
+			panic("unexpected msg.Host")
 		}
 	}
 }
@@ -712,12 +666,14 @@ func BenchmarkParserParseCEE(b *testing.B) {
 func BenchmarkParserParseLeastLikelyTime(b *testing.B) {
 	m := []byte("<38>Mon Jan  2 15:04:05 host.example.org test: hello world\n")
 
-	var msg SyslogMsg
-
 	for i := 0; i < b.N; i++ {
-		err := Unmarshal(m, &msg)
+		b.SetBytes(int64(len(m)))
+		msg, err := NewSyslogMsgFromBytes(m)
 		if err != nil {
 			panic(err)
+		}
+		if msg.Content != " hello world" {
+			panic("unexpected msg.Content")
 		}
 	}
 }
@@ -725,27 +681,29 @@ func BenchmarkParserParseLeastLikelyTime(b *testing.B) {
 func BenchmarkParserParseAndString(b *testing.B) {
 	m := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: hello world\n")
 
-	var msg SyslogMsg
-
 	for i := 0; i < b.N; i++ {
-		err := Unmarshal(m, &msg)
+		b.SetBytes(int64(len(m)))
+		msg, err := NewSyslogMsgFromBytes(m)
 		if err != nil {
 			panic(err)
 		}
-		_ = msg.String()
+		if msg.Content != " hello world" {
+			panic("unexpected msg.Content")
+		}
 	}
 }
 
 func BenchmarkParserParseAndBytes(b *testing.B) {
 	m := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: hello world\n")
 
-	var msg SyslogMsg
-
 	for i := 0; i < b.N; i++ {
-		err := Unmarshal(m, &msg)
+		b.SetBytes(int64(len(m)))
+		msg, err := NewSyslogMsgFromBytes(m)
 		if err != nil {
 			panic(err)
 		}
-		_ = msg.Bytes()
+		if msg.Content != " hello world" {
+			panic("unexpected msg.Content")
+		}
 	}
 }

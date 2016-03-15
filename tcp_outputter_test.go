@@ -9,9 +9,8 @@ import (
 )
 
 func TestTCPOutputter(t *testing.T) {
-	testMsg := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: hello world\n")
-	var msg SyslogMsg
-	err := Unmarshal(testMsg, &msg)
+	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: hello world\n")
+	msg, err := NewSyslogMsgFromBytes(b)
 	if err != nil {
 		t.Error(err)
 	}
@@ -42,7 +41,7 @@ func TestTCPOutputter(t *testing.T) {
 		}
 
 		line = append(line, '\n')
-		if want, got := 0, bytes.Compare(testMsg, line); want != got {
+		if want, got := 0, bytes.Compare(b, line); want != got {
 			t.Errorf("want '%v', got '%v'", want, got)
 			t.Errorf("%s", line)
 		}
@@ -63,7 +62,7 @@ func TestTCPOutputter(t *testing.T) {
 		t.Error(err)
 	}
 
-	if want, got := len(testMsg), n; want != got {
+	if want, got := len(b), n; want != got {
 		t.Errorf("want '%v', got '%v'", want, got)
 	}
 }

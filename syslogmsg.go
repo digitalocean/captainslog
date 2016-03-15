@@ -27,6 +27,14 @@ func NewSyslogMsg() SyslogMsg {
 	}
 }
 
+// NewSyslogMsgFromBytes accepts a []byte containing an RFC3164
+// message and returns a SyslogMsg
+func NewSyslogMsgFromBytes(b []byte) (SyslogMsg, error) {
+	msg := NewSyslogMsg()
+	err := Unmarshal(b, &msg)
+	return msg, err
+}
+
 // String returns the SyslogMsg as an RFC3164 string
 func (s *SyslogMsg) String() string {
 	var content string
