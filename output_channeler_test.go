@@ -16,7 +16,7 @@ func TestOutputChannelerWithTCPOutputter(t *testing.T) {
 		t.Error(err)
 	}
 
-	address := "127.0.0.1:45454"
+	address := "127.0.0.1:45456"
 	retryInterval := 5
 
 	l, err := net.Listen("tcp", address)
