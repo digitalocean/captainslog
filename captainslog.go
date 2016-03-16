@@ -8,6 +8,15 @@ var (
 	ErrTransform = errors.New("transform error")
 )
 
+// ChannelerCmd represents a command that can
+// be sent to a Channeler
+type ChannelerCmd int
+
+const (
+	// CmdStop tells a Channeler to stop
+	CmdStop ChannelerCmd = iota
+)
+
 // Transformer accept a SyslogMsg, and return a modified SyslogMsg
 type Transformer interface {
 	Transform(SyslogMsg) (SyslogMsg, error)
@@ -32,5 +41,15 @@ type Outputter interface {
 	Output(s *SyslogMsg) (int, error)
 	Connect() error
 	RetryInterval() int
+	Close()
+}
+
+// Inputter is an interface that provides
+// specific functionality to InputChannelers. They
+// are transport adapters - for instance, TCPInputter
+// converts syslog byte's received over TCP to a
+// *SyslogMsg and sends it over a channel.
+type Inputter interface {
+	Listen() <-chan *SyslogMsg
 	Close()
 }

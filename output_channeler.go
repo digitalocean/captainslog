@@ -5,15 +5,6 @@ import (
 	"time"
 )
 
-// ChannelerCmd represents a command that can
-// be sent to a Channeler
-type ChannelerCmd int
-
-const (
-	// CmdStop tells a Gizmo to stop
-	CmdStop ChannelerCmd = iota
-)
-
 // OutputChanneler is an outgoing endpoint in a
 // chain of Channelers. An OutputChanneler uses
 // an Outputter to translate *SyslogMsg
