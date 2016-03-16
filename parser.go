@@ -1,6 +1,7 @@
 package captainslog
 
 import (
+	"bytes"
 	"encoding/json"
 	"strconv"
 	"time"
@@ -258,7 +259,9 @@ func (p *parser) parseContent() error {
 	p.tokenEnd = p.cur
 
 	if p.msg.IsCee {
-		err = json.Unmarshal(p.buf[p.tokenStart:p.tokenEnd], &p.msg.JSONValues)
+		decoder := json.NewDecoder(bytes.NewBuffer(p.buf[p.tokenStart:p.tokenEnd]))
+		decoder.UseNumber()
+		err = decoder.Decode(&p.msg.JSONValues)
 		if err != nil {
 			p.msg.IsCee = false
 		}
