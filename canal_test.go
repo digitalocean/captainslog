@@ -35,7 +35,7 @@ func TestCanal(t *testing.T) {
 	sanitizer, err := NewJSONKeyTransformer().OldString(".").NewString("_").Do()
 
 	tagger, err := NewTagRangeTransformer().
-		SelectTag(Program, "kernel:").
+		Select(Program, "kernel:").
 		StartMatch(Contains, "[ cut here ]").
 		EndMatch(Contains, "[ end trace").
 		AddTag("tags", "trace").

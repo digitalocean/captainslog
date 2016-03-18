@@ -14,7 +14,7 @@ func TestRangeTransformerTTL(t *testing.T) {
 	input := []byte("<4>2016-03-08T14:59:36.293816+00:00 host.example.com kernel: [15803005.789011] ------------[ cut here ]------------\n")
 
 	transformer, err := NewTagRangeTransformer().
-		SelectTag(Program, "kernel:").
+		Select(Program, "kernel:").
 		StartMatch(Contains, "[ cut here ]").
 		EndMatch(Contains, "[ end trace").
 		AddTag("tags", "trace").
@@ -86,7 +86,7 @@ func TestTagRangeTransformerTransform(t *testing.T) {
 	}
 
 	transformer, err := NewTagRangeTransformer().
-		SelectTag(Program, "kernel:").
+		Select(Program, "kernel:").
 		StartMatch(Contains, "[ cut here ]").
 		EndMatch(Contains, "[ end trace").
 		AddTag("tags", "trace").
@@ -121,7 +121,7 @@ func BenchmarkTagRangeTransformerTransform(b *testing.B) {
 	m := []byte("<4>2016-03-08T14:59:36.293816+00:00 host.example.com kernel: [15803005.789011] ------------[ cut here ]------------\n")
 
 	transformer, err := NewTagRangeTransformer().
-		SelectTag(Program, "kernel:").
+		Select(Program, "kernel:").
 		StartMatch(Contains, "[ cut here ]").
 		EndMatch(Contains, "[ end trace").
 		AddTag("tags", "trace").

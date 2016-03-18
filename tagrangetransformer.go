@@ -190,7 +190,7 @@ func (t *TagRangeTransformer) reap() {
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
 
-	for k, v := range m.trackingDB {
+	for k, v := range t.trackingDB {
 		duration := time.Since(v)
 		if duration.Seconds() > t.ttl.Seconds() {
 			delete(t.trackingDB, k)
@@ -206,21 +206,21 @@ func (t *TagRangeTransformer) Transform(msg SyslogMsg) (SyslogMsg, error) {
 		return msg, err
 	}
 
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
+	t.mutex.Lock()
+	defer t.mutex.Unlock()
 
 	logID := getMsgID(&msg)
 	var tagIt bool
 
-	if _, ok := m.trackingDB[logID]; ok {
+	if _, ok := t.trackingDB[logID]; ok {
 		tagIt = true
-		if m.endMatcher.Match(&msg) {
-			delete(m.trackingDB, logID)
+		if t.endMatcher.Match(&msg) {
+			delete(t.trackingDB, logID)
 		}
 	} else {
-		if m.startMatcher.Match(&msg) {
+		if t.startMatcher.Match(&msg) {
 			tagIt = true
-			m.trackingDB[logID] = time.Now()
+			t.trackingDB[logID] = time.Now()
 		}
 	}
 
@@ -228,6 +228,6 @@ func (t *TagRangeTransformer) Transform(msg SyslogMsg) (SyslogMsg, error) {
 		return msg, err
 	}
 
-	err = m.tagger.Mutate(&msg)
+	err = t.tagger.Mutate(&msg)
 	return msg, err
 }
