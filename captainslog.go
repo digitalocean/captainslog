@@ -17,6 +17,18 @@ const (
 	CmdStop ChannelerCmd = iota
 )
 
+// MatchType represents types of matches that can
+// be made against a SyslogMsg
+type MatchType int
+
+const (
+	// Program match is an exact match against syslog program name
+	Program MatchType = iota
+
+	// Contains match checks if the syslog content contains a string
+	Contains
+)
+
 // Transformer accept a SyslogMsg, and return a modified SyslogMsg
 type Transformer interface {
 	Transform(SyslogMsg) (SyslogMsg, error)

@@ -100,70 +100,127 @@ type TagRangeTransformer struct {
 	mutex         *sync.Mutex
 }
 
-// NewTagRangeTransformer accepts a Matcher to select which logs lines the
-// mutator should scan, and a start and end Matcher to denote the lines
-// that designate the start and end of a match. All lines that match
-// the selection criteria and are either the start and end match or
-// log lines in between them will be tagged.
-func NewTagRangeTransformer(selectMatcher, startMatcher, endMatcher Matcher,
-	tagger Mutator, ttlSeconds, reapIntervalSeconds int) *TagRangeTransformer {
-	tr := &TagRangeTransformer{
-		selectMatcher: selectMatcher,
-		startMatcher:  startMatcher,
-		endMatcher:    endMatcher,
-		tagger:        tagger,
-		trackingDB:    make(map[string]time.Time),
-		ttl:           time.Duration(ttlSeconds) * time.Second,
-		reapInterval:  time.Duration(reapIntervalSeconds) * time.Second,
-		mutex:         &sync.Mutex{},
+// NewTagRangeTransformer starts the construction of a TagRangeTransformer.
+func NewTagRangeTransformer() *TagRangeTransformer {
+	return &TagRangeTransformer{}
+}
+
+// Select accepts a MatchType and a matchValue string. If a given SyslogMsg does
+// not match the Select critera, than the TagRangeTransformer will return the
+// original message without processing it.
+func (t *TagRangeTransformer) Select(matchType MatchType, matchValue string) *TagRangeTransformer {
+	switch matchType {
+	case Program:
+		t.selectMatcher = NewTagMatcher(matchValue)
+	case Contains:
+		t.selectMatcher = NewContentContainsMatcher(matchValue)
+	default:
 	}
+	return t
+}
+
+// StartMatch accept a MatchType and a matchValue string. If the SyslogMsg being
+// processed matches, then it will be tagged, and every following message that
+// matches the Select criteria will be tagged until the first message after
+// the EndMatch.
+func (t *TagRangeTransformer) StartMatch(matchType MatchType, matchValue string) *TagRangeTransformer {
+	switch matchType {
+	case Program:
+		t.startMatcher = NewTagMatcher(matchValue)
+	case Contains:
+		t.startMatcher = NewContentContainsMatcher(matchValue)
+	default:
+	}
+	return t
+}
+
+// EndMatch accepts a MatchType and a matchValue string. If the SyslogMsg being
+// processed matches, then it will be tagged, its key will be removed
+// from the tracking db and subsequent messages that match the Select
+// will not be tagged.
+func (t *TagRangeTransformer) EndMatch(matchType MatchType, matchValue string) *TagRangeTransformer {
+	switch matchType {
+	case Program:
+		t.endMatcher = NewTagMatcher(matchValue)
+	case Contains:
+		t.endMatcher = NewContentContainsMatcher(matchValue)
+	default:
+	}
+	return t
+}
+
+// WaitDuration sets the ammount of time the TagRangeTransformer
+// will wait to see an EndMatch after seeing the StartMatch.
+func (t *TagRangeTransformer) WaitDuration(duration time.Duration) *TagRangeTransformer {
+	t.ttl = duration
+	t.reapInterval = t.ttl / 2
+	return t
+}
+
+// AddTag specifies the tag to be added.
+func (t *TagRangeTransformer) AddTag(key string, value string) *TagRangeTransformer {
+	t.tagger = NewTagArrayMutator(key, value)
+	return t
+}
+
+// Do starts the TagRangeTransformer.
+func (t *TagRangeTransformer) Do() (*TagRangeTransformer, error) {
+	if t.selectMatcher == nil ||
+		t.startMatcher == nil ||
+		t.endMatcher == nil ||
+		t.tagger == nil {
+		return nil, fmt.Errorf("argument error")
+	}
+
+	t.mutex = &sync.Mutex{}
+	t.trackingDB = make(map[string]time.Time)
 
 	go func() {
 		for {
-			time.Sleep(tr.reapInterval)
-			tr.reap()
+			time.Sleep(t.reapInterval)
+			t.reap()
 		}
 	}()
 
-	return tr
+	return t, nil
 }
 
 // reap reaps expired keys from the trackingDB
-func (m *TagRangeTransformer) reap() {
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
+func (t *TagRangeTransformer) reap() {
+	t.mutex.Lock()
+	defer t.mutex.Unlock()
 
-	for k, v := range m.trackingDB {
+	for k, v := range t.trackingDB {
 		duration := time.Since(v)
-		if duration.Seconds() > m.ttl.Seconds() {
-			delete(m.trackingDB, k)
+		if duration.Seconds() > t.ttl.Seconds() {
+			delete(t.trackingDB, k)
 		}
 	}
 }
 
 // Transform accepts a SyslogMsg and applies the Transformer to it.
-func (m *TagRangeTransformer) Transform(msg SyslogMsg) (SyslogMsg, error) {
+func (t *TagRangeTransformer) Transform(msg SyslogMsg) (SyslogMsg, error) {
 	var err error
 
-	if !m.selectMatcher.Match(&msg) {
+	if !t.selectMatcher.Match(&msg) {
 		return msg, err
 	}
 
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
+	t.mutex.Lock()
+	defer t.mutex.Unlock()
 
 	logID := getMsgID(&msg)
 	var tagIt bool
 
-	if _, ok := m.trackingDB[logID]; ok {
+	if _, ok := t.trackingDB[logID]; ok {
 		tagIt = true
-		if m.endMatcher.Match(&msg) {
-			delete(m.trackingDB, logID)
+		if t.endMatcher.Match(&msg) {
+			delete(t.trackingDB, logID)
 		}
 	} else {
-		if m.startMatcher.Match(&msg) {
+		if t.startMatcher.Match(&msg) {
 			tagIt = true
-			m.trackingDB[logID] = time.Now()
+			t.trackingDB[logID] = time.Now()
 		}
 	}
 
@@ -171,6 +228,6 @@ func (m *TagRangeTransformer) Transform(msg SyslogMsg) (SyslogMsg, error) {
 		return msg, err
 	}
 
-	err = m.tagger.Mutate(&msg)
+	err = t.tagger.Mutate(&msg)
 	return msg, err
 }

@@ -3,7 +3,6 @@ package captainslog
 import (
 	"bufio"
 	"net"
-	"strings"
 	"testing"
 )
 
@@ -33,15 +32,19 @@ func TestCanal(t *testing.T) {
 	inputter, _ := NewTCPInputter(inAddr)
 	inputChanneler := NewInputChanneler(inputter)
 
-	replacer := strings.NewReplacer(".", "_")
-	sanitizer := NewJSONKeyTransformer(replacer)
+	sanitizer, err := NewJSONKeyTransformer().OldString(".").NewString("_").Do()
 
-	tagger := NewTagRangeTransformer(
-		NewTagMatcher("kernel:"),
-		NewContentContainsMatcher("[ cut here ]"),
-		NewContentContainsMatcher("[ end trace"),
-		NewTagArrayMutator("tags", "trace"),
-		60, 30)
+	tagger, err := NewTagRangeTransformer().
+		Select(Program, "kernel:").
+		StartMatch(Contains, "[ cut here ]").
+		EndMatch(Contains, "[ end trace").
+		AddTag("tags", "trace").
+		WaitDuration(1).
+		Do()
+
+	if err != nil {
+		t.Error(err)
+	}
 
 	canal := NewCanal(inputChanneler, outputChanneler, tagger, sanitizer)
 

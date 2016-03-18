@@ -13,15 +13,20 @@ type testCase struct {
 func TestRangeTransformerTTL(t *testing.T) {
 	input := []byte("<4>2016-03-08T14:59:36.293816+00:00 host.example.com kernel: [15803005.789011] ------------[ cut here ]------------\n")
 
-	transformer := NewTagRangeTransformer(
-		NewTagMatcher("kernel:"),
-		NewContentContainsMatcher("[ cut here ]"),
-		NewContentContainsMatcher("[ end trace"),
-		NewTagArrayMutator("tags", "trace"),
-		1, 1)
+	transformer, err := NewTagRangeTransformer().
+		Select(Program, "kernel:").
+		StartMatch(Contains, "[ cut here ]").
+		EndMatch(Contains, "[ end trace").
+		AddTag("tags", "trace").
+		WaitDuration(1).
+		Do()
+
+	if err != nil {
+		t.Error(err)
+	}
 
 	original := NewSyslogMsg()
-	err := Unmarshal(input, &original)
+	err = Unmarshal(input, &original)
 	if err != nil {
 		t.Error(err)
 	}
@@ -80,12 +85,17 @@ func TestTagRangeTransformerTransform(t *testing.T) {
 		},
 	}
 
-	transformer := NewTagRangeTransformer(
-		NewTagMatcher("kernel:"),
-		NewContentContainsMatcher("[ cut here ]"),
-		NewContentContainsMatcher("[ end trace"),
-		NewTagArrayMutator("tags", "trace"),
-		60, 30)
+	transformer, err := NewTagRangeTransformer().
+		Select(Program, "kernel:").
+		StartMatch(Contains, "[ cut here ]").
+		EndMatch(Contains, "[ end trace").
+		AddTag("tags", "trace").
+		WaitDuration(60).
+		Do()
+
+	if err != nil {
+		t.Error(err)
+	}
 
 	for i, v := range cases {
 		original := NewSyslogMsg()
@@ -110,12 +120,17 @@ func TestTagRangeTransformerTransform(t *testing.T) {
 func BenchmarkTagRangeTransformerTransform(b *testing.B) {
 	m := []byte("<4>2016-03-08T14:59:36.293816+00:00 host.example.com kernel: [15803005.789011] ------------[ cut here ]------------\n")
 
-	transformer := NewTagRangeTransformer(
-		NewTagMatcher("kernel:"),
-		NewContentContainsMatcher("[ cut here ]"),
-		NewContentContainsMatcher("[ end trace"),
-		NewTagArrayMutator("tags", "trace"),
-		60, 30)
+	transformer, err := NewTagRangeTransformer().
+		Select(Program, "kernel:").
+		StartMatch(Contains, "[ cut here ]").
+		EndMatch(Contains, "[ end trace").
+		AddTag("tags", "trace").
+		WaitDuration(60).
+		Do()
+
+	if err != nil {
+		panic(err)
+	}
 
 	for i := 0; i < b.N; i++ {
 		original := NewSyslogMsg()
