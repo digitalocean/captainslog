@@ -23,7 +23,7 @@ func main() {
 
 	inputChanneler := captainslog.NewInputChanneler(inputter)
 
-	sanitizer, err := NewJSONKeyTransformer().
+	sanitizer, err := captainslog.NewJSONKeyTransformer().
 		OldString(".").
 		NewString("_").
 		Do()
@@ -32,10 +32,10 @@ func main() {
 		panic(err)
 	}
 
-	tagger, err := NewTagRangeTransformer().
-		SelectTag(Program, "kernel:").
-		StartMatch(Contains, "[ cut here ]").
-		EndMatch(Contains, "[ end trace").
+	tagger, err := captainslog.NewTagRangeTransformer().
+		Select(captainslog.Program, "kernel:").
+		StartMatch(captainslog.Contains, "[ cut here ]").
+		EndMatch(captainslog.Contains, "[ end trace").
 		AddTag("tags", "trace").
 		WaitDuration(60).
 		Do()
