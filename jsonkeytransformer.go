@@ -17,22 +17,25 @@ type JSONKeyTransformer struct {
 	replacer *strings.Replacer
 }
 
-// NewJSONKeyTransformer applies a strings.Replacer to all
-// keys in a JSON document in a CEE syslog message.
+// NewJSONKeyTransformer begins construction of a JSONKeyTransformer.
 func NewJSONKeyTransformer() *JSONKeyTransformer {
 	return &JSONKeyTransformer{}
 }
 
+// OldString sets the string that will be replaced in JSON keys
 func (t *JSONKeyTransformer) OldString(oldstring string) *JSONKeyTransformer {
 	t.old = oldstring
 	return t
 }
 
+// NewString sets the string that OldString will be converted to
 func (t *JSONKeyTransformer) NewString(newstring string) *JSONKeyTransformer {
 	t.new = newstring
 	return t
 }
 
+// Do finishes construction of the JSONKeyTransformer and returns an
+// error if any arguments are missing
 func (t *JSONKeyTransformer) Do() (*JSONKeyTransformer, error) {
 	if t.old == "" || t.new == "" {
 		return t, fmt.Errorf("bad arguments")
@@ -42,18 +45,18 @@ func (t *JSONKeyTransformer) Do() (*JSONKeyTransformer, error) {
 }
 
 // recurseTransformMap is a helper method to visit multi-level JSON used by Transform
-func (m *JSONKeyTransformer) recurseTransformMap(in, out map[string]interface{}) {
+func (t *JSONKeyTransformer) recurseTransformMap(in, out map[string]interface{}) {
 	for k, v := range in {
-		transformedKey := m.replacer.Replace(k)
+		transformedKey := t.replacer.Replace(k)
 		switch cv := v.(type) {
 		case map[string]interface{}:
 			nv := make(map[string]interface{})
 			out[transformedKey] = nv
-			m.recurseTransformMap(cv, nv)
+			t.recurseTransformMap(cv, nv)
 		case []interface{}:
 			nv := make([]interface{}, len(cv))
 			out[transformedKey] = nv
-			m.recurseTransformArr(cv, nv)
+			t.recurseTransformArr(cv, nv)
 		default:
 			out[transformedKey] = v
 		}
@@ -61,17 +64,17 @@ func (m *JSONKeyTransformer) recurseTransformMap(in, out map[string]interface{})
 }
 
 // recurseTransformArr is a helper method to visit multi-level JSON used by recurseTransformMap
-func (m *JSONKeyTransformer) recurseTransformArr(in, out []interface{}) {
+func (t *JSONKeyTransformer) recurseTransformArr(in, out []interface{}) {
 	for i, v := range in {
 		switch cv := v.(type) {
 		case map[string]interface{}:
 			nv := make(map[string]interface{})
 			out[i] = nv
-			m.recurseTransformMap(cv, nv)
+			t.recurseTransformMap(cv, nv)
 		case []interface{}:
 			nv := make([]interface{}, len(cv))
 			out[i] = nv
-			m.recurseTransformArr(cv, nv)
+			t.recurseTransformArr(cv, nv)
 		default:
 			out[i] = v
 		}
@@ -80,13 +83,13 @@ func (m *JSONKeyTransformer) recurseTransformArr(in, out []interface{}) {
 
 // Transform accepts a SyslogMsg, and if it is a CEE syslog message, "fixes"
 // the JSON keys to be compatible with Elasticsearch 2.x
-func (m *JSONKeyTransformer) Transform(msg SyslogMsg) (SyslogMsg, error) {
+func (t *JSONKeyTransformer) Transform(msg SyslogMsg) (SyslogMsg, error) {
 	if !msg.IsCee {
 		return msg, ErrTransform
 	}
 
 	transformedStructured := make(map[string]interface{})
-	m.recurseTransformMap(msg.JSONValues, transformedStructured)
+	t.recurseTransformMap(msg.JSONValues, transformedStructured)
 	newContent, _ := json.Marshal(transformedStructured)
 	msg.Content = string(newContent)
 	msg.JSONValues = transformedStructured

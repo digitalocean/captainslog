@@ -17,10 +17,15 @@ const (
 	CmdStop ChannelerCmd = iota
 )
 
+// MatchType represents types of matches that can
+// be made against a SyslogMsg
 type MatchType int
 
 const (
+	// Program match is an exact match against syslog program name
 	Program = iota
+
+	// Contains match checks if the syslog content contains a string
 	Contains
 )
 

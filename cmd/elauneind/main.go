@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"strings"
 
 	"github.com/digitalocean/captainslog"
 )
@@ -17,18 +16,33 @@ func main() {
 	outputter := captainslog.NewTCPOutputter(*sendAddress, retryInterval)
 	outputChanneler := captainslog.NewOutputChanneler(outputter)
 
-	inputter, _ := captainslog.NewTCPInputter(*recvAddress)
+	inputter, err := captainslog.NewTCPInputter(*recvAddress)
+	if err != nil {
+		panic(err)
+	}
+
 	inputChanneler := captainslog.NewInputChanneler(inputter)
 
-	replacer := strings.NewReplacer(".", "_")
-	sanitizer := captainslog.NewJSONKeyTransformer(replacer)
+	sanitizer, err := NewJSONKeyTransformer().
+		OldString(".").
+		NewString("_").
+		Do()
 
-	tagger := captainslog.NewTagRangeTransformer(
-		captainslog.NewTagMatcher("kernel:"),
-		captainslog.NewContentContainsMatcher("[ cut here ]"),
-		captainslog.NewContentContainsMatcher("[ end trace"),
-		captainslog.NewTagArrayMutator("tags", "trace"),
-		60, 30)
+	if err != nil {
+		panic(err)
+	}
+
+	tagger, err := NewTagRangeTransformer().
+		SelectTag(Program, "kernel:").
+		StartMatch(Contains, "[ cut here ]").
+		EndMatch(Contains, "[ end trace").
+		AddTag("tags", "trace").
+		WaitDuration(60).
+		Do()
+
+	if err != nil {
+		panic(err)
+	}
 
 	canal := captainslog.NewCanal(inputChanneler, outputChanneler, tagger, sanitizer)
 	canal.Ship()
