@@ -12,8 +12,8 @@ import (
 // fully support ECMA-404 (for instance, Elasticsearch 2.x does
 // not allow periods in key names, which ECMA-404 does)
 type JSONKeyTransformer struct {
-	old      string
-	new      string
+	oldVal   string
+	newVal   string
 	replacer *strings.Replacer
 }
 
@@ -24,23 +24,23 @@ func NewJSONKeyTransformer() *JSONKeyTransformer {
 
 // OldString sets the string that will be replaced in JSON keys
 func (t *JSONKeyTransformer) OldString(oldstring string) *JSONKeyTransformer {
-	t.old = oldstring
+	t.oldVal = oldstring
 	return t
 }
 
 // NewString sets the string that OldString will be converted to
 func (t *JSONKeyTransformer) NewString(newstring string) *JSONKeyTransformer {
-	t.new = newstring
+	t.newVal = newstring
 	return t
 }
 
 // Do finishes construction of the JSONKeyTransformer and returns an
 // error if any arguments are missing
 func (t *JSONKeyTransformer) Do() (*JSONKeyTransformer, error) {
-	if t.old == "" || t.new == "" {
+	if t.oldVal == "" || t.newVal == "" {
 		return t, fmt.Errorf("bad arguments")
 	}
-	t.replacer = strings.NewReplacer(t.old, t.new)
+	t.replacer = strings.NewReplacer(t.oldVal, t.newVal)
 	return t, nil
 }
 
