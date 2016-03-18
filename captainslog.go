@@ -17,6 +17,13 @@ const (
 	CmdStop ChannelerCmd = iota
 )
 
+type MatchType int
+
+const (
+	Program = iota
+	Contains
+)
+
 // Transformer accept a SyslogMsg, and return a modified SyslogMsg
 type Transformer interface {
 	Transform(SyslogMsg) (SyslogMsg, error)

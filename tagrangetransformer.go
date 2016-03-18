@@ -100,32 +100,73 @@ type TagRangeTransformer struct {
 	mutex         *sync.Mutex
 }
 
-// NewTagRangeTransformer accepts a Matcher to select which logs lines the
-// mutator should scan, and a start and end Matcher to denote the lines
-// that designate the start and end of a match. All lines that match
-// the selection criteria and are either the start and end match or
-// log lines in between them will be tagged.
-func NewTagRangeTransformer(selectMatcher, startMatcher, endMatcher Matcher,
-	tagger Mutator, ttlSeconds, reapIntervalSeconds int) *TagRangeTransformer {
-	tr := &TagRangeTransformer{
-		selectMatcher: selectMatcher,
-		startMatcher:  startMatcher,
-		endMatcher:    endMatcher,
-		tagger:        tagger,
-		trackingDB:    make(map[string]time.Time),
-		ttl:           time.Duration(ttlSeconds) * time.Second,
-		reapInterval:  time.Duration(reapIntervalSeconds) * time.Second,
-		mutex:         &sync.Mutex{},
+func NewTagRangeTransformer() *TagRangeTransformer {
+	return &TagRangeTransformer{}
+}
+
+func (t *TagRangeTransformer) SelectTag(matchType MatchType, matchValue string) *TagRangeTransformer {
+	switch matchType {
+	case Program:
+		t.selectMatcher = NewTagMatcher(matchValue)
+	case Contains:
+		t.selectMatcher = NewContentContainsMatcher(matchValue)
+	default:
 	}
+	return t
+}
+
+func (t *TagRangeTransformer) StartMatch(matchType MatchType, matchValue string) *TagRangeTransformer {
+	switch matchType {
+	case Program:
+		t.startMatcher = NewTagMatcher(matchValue)
+	case Contains:
+		t.startMatcher = NewContentContainsMatcher(matchValue)
+	default:
+	}
+	return t
+}
+
+func (t *TagRangeTransformer) EndMatch(matchType MatchType, matchValue string) *TagRangeTransformer {
+	switch matchType {
+	case Program:
+		t.endMatcher = NewTagMatcher(matchValue)
+	case Contains:
+		t.endMatcher = NewContentContainsMatcher(matchValue)
+	default:
+	}
+	return t
+}
+
+func (t *TagRangeTransformer) WaitDuration(duration time.Duration) *TagRangeTransformer {
+	t.ttl = duration
+	t.reapInterval = t.ttl / 2
+	return t
+}
+
+func (t *TagRangeTransformer) AddTag(key string, value string) *TagRangeTransformer {
+	t.tagger = NewTagArrayMutator(key, value)
+	return t
+}
+
+func (t *TagRangeTransformer) Do() (*TagRangeTransformer, error) {
+	if t.selectMatcher == nil ||
+		t.startMatcher == nil ||
+		t.endMatcher == nil ||
+		t.tagger == nil {
+		return nil, fmt.Errorf("argument error")
+	}
+
+	t.mutex = &sync.Mutex{}
+	t.trackingDB = make(map[string]time.Time)
 
 	go func() {
 		for {
-			time.Sleep(tr.reapInterval)
-			tr.reap()
+			time.Sleep(t.reapInterval)
+			t.reap()
 		}
 	}()
 
-	return tr
+	return t, nil
 }
 
 // reap reaps expired keys from the trackingDB

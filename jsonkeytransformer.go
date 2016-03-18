@@ -2,6 +2,7 @@ package captainslog
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 )
 
@@ -11,15 +12,33 @@ import (
 // fully support ECMA-404 (for instance, Elasticsearch 2.x does
 // not allow periods in key names, which ECMA-404 does)
 type JSONKeyTransformer struct {
+	old      string
+	new      string
 	replacer *strings.Replacer
 }
 
 // NewJSONKeyTransformer applies a strings.Replacer to all
 // keys in a JSON document in a CEE syslog message.
-func NewJSONKeyTransformer(replacer *strings.Replacer) *JSONKeyTransformer {
-	return &JSONKeyTransformer{
-		replacer: replacer,
+func NewJSONKeyTransformer() *JSONKeyTransformer {
+	return &JSONKeyTransformer{}
+}
+
+func (t *JSONKeyTransformer) OldString(oldstring string) *JSONKeyTransformer {
+	t.old = oldstring
+	return t
+}
+
+func (t *JSONKeyTransformer) NewString(newstring string) *JSONKeyTransformer {
+	t.new = newstring
+	return t
+}
+
+func (t *JSONKeyTransformer) Do() (*JSONKeyTransformer, error) {
+	if t.old == "" || t.new == "" {
+		return t, fmt.Errorf("bad arguments")
 	}
+	t.replacer = strings.NewReplacer(t.old, t.new)
+	return t, nil
 }
 
 // recurseTransformMap is a helper method to visit multi-level JSON used by Transform
