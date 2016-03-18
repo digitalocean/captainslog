@@ -23,7 +23,7 @@ type MatchType int
 
 const (
 	// Program match is an exact match against syslog program name
-	Program = iota
+	Program MatchType = iota
 
 	// Contains match checks if the syslog content contains a string
 	Contains
