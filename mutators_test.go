@@ -18,5 +18,4 @@ func TestTagArrayMutator(t *testing.T) {
 	if _, ok := msg.JSONValues["tags"]; !ok {
 		t.Error("expected 'tags' key in ms.JSONValues")
 	}
-
 }
