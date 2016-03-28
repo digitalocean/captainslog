@@ -38,7 +38,7 @@ const (
 // Facility represents a syslog facility code
 type Facility int
 
-//FacilityTextToFacility accepts a string representation of a syslog
+// FacilityTextToFacility accepts a string representation of a syslog
 // facility and returns a captainslog.Facility
 func FacilityTextToFacility(facilityText string) (Facility, error) {
 	var err error
@@ -93,87 +93,87 @@ func FacilityTextToFacility(facilityText string) (Facility, error) {
 }
 
 const (
-	//Kern is the kernel rfc3164 facility
+	//Kern is the kernel rfc3164 facility.
 	Kern Facility = 0
 
-	//User is the user rfc3164 facility
+	//User is the user rfc3164 facility.
 	User Facility = 1
 
-	// Mail is the mail rfc3164 facility
+	// Mail is the mail rfc3164 facility.
 	Mail Facility = 2
 
-	// Daemon is the daemon rfc3164 facility
+	// Daemon is the daemon rfc3164 facility.
 	Daemon Facility = 3
 
-	// Auth is the auth rfc3164 facility
+	// Auth is the auth rfc3164 facility.
 	Auth Facility = 4
 
-	// Syslog is the syslog rfc3164 facility
+	// Syslog is the syslog rfc3164 facility.
 	Syslog Facility = 5
 
-	// LPR is the printer rfc3164 facility
+	// LPR is the printer rfc3164 facility.
 	LPR Facility = 6
 
-	// News is a news rfc3164 facility
+	// News is a news rfc3164 facility.
 	News Facility = 7
 
-	// UUCP is the UUCP rfc3164 facility
+	// UUCP is the UUCP rfc3164 facility.
 	UUCP Facility = 8
 
-	// Cron is the cron rfc3164 facility
+	// Cron is the cron rfc3164 facility.
 	Cron Facility = 9
 
-	//AuthPriv is the authpriv rfc3164 facility
+	//AuthPriv is the authpriv rfc3164 facility.
 	AuthPriv Facility = 10
 
-	// FTP is the ftp rfc3164 facility
+	// FTP is the ftp rfc3164 facility.
 	FTP Facility = 11
 
-	// Local0 is the local0 rfc3164 facility
+	// Local0 is the local0 rfc3164 facility.
 	Local0 Facility = 16
 
-	// Local1 is the local1 rfc3164 facility
+	// Local1 is the local1 rfc3164 facility.
 	Local1 Facility = 17
 
-	// Local2  is the local2 rfc3164 facility
+	// Local2  is the local2 rfc3164 facility.
 	Local2 Facility = 18
 
-	// Local3 is the local3 rfc3164 facility
+	// Local3 is the local3 rfc3164 facility.
 	Local3 Facility = 19
 
-	// Local4 is the local4 rfc3164 facility
+	// Local4 is the local4 rfc3164 facility.
 	Local4 Facility = 20
 
-	// Local5 is the local5 rfc3164 facility
+	// Local5 is the local5 rfc3164 facility.
 	Local5 Facility = 21
 
-	// Local6 is the local6 rfc3164 facility
+	// Local6 is the local6 rfc3164 facility.
 	Local6 Facility = 22
 
-	// Local7 is the local7 rfc3164 facility
+	// Local7 is the local7 rfc3164 facility.
 	Local7 Facility = 23
 )
 
 var (
-	//ErrBadPriority is returned when the priority of a message is malformed
+	//ErrBadPriority is returned when the priority of a message is malformed.
 	ErrBadPriority = errors.New("Priority not found")
 
-	//ErrBadFacility is returned when a facility is not within allowed values
+	//ErrBadFacility is returned when a facility is not within allowed values.
 	ErrBadFacility = errors.New("Facility not found")
 
-	//ErrBadSeverity is returned when a severity is not within allowed values
+	//ErrBadSeverity is returned when a severity is not within allowed values.
 	ErrBadSeverity = errors.New("Severity not found")
 
-	//ErrBadTime is returned when the time of a message is malformed
+	//ErrBadTime is returned when the time of a message is malformed.
 	ErrBadTime = errors.New("Time not found")
 
-	//ErrBadHost is returned when the host of a message is malformed
+	//ErrBadHost is returned when the host of a message is malformed.
 	ErrBadHost = errors.New("Host not found")
 
-	//ErrBadTag is returned when the tag of a message is malformed
+	//ErrBadTag is returned when the tag of a message is malformed.
 	ErrBadTag = errors.New("Tag not found")
 
-	//ErrBadContent is returned when the content of a message is malformed
+	//ErrBadContent is returned when the content of a message is malformed.
 	ErrBadContent = errors.New("Content not found")
 
 	timeFormats = []string{
@@ -194,7 +194,7 @@ type Priority struct {
 }
 
 // NewPriority calculates a Priority from a Facility
-// and Severity
+// and Severity.
 func NewPriority(f Facility, s Severity) (*Priority, error) {
 	p := &Priority{
 		Facility: f,

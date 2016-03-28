@@ -2,87 +2,14 @@ package captainslog
 
 import (
 	"fmt"
-	"strings"
 	"sync"
 	"time"
 )
 
 // getMsgID creates a key for a log line from
-// it's hostname and program name tag
+// it's hostname and program name tag.
 func getMsgID(msg *SyslogMsg) string {
 	return fmt.Sprintf("%s!%s", msg.Host, msg.Tag)
-}
-
-// TagArrayMutator is a Mutator that modifies a syslog message
-// by adding a tag value to an array of tags.
-type TagArrayMutator struct {
-	tagKey   string
-	tagValue string
-}
-
-// NewTagArrayMutator constructs a new TagArrayMutator from a supplied
-// key and value. The tag will be added to the array at the key if
-// it exists - if the key does not exist in the SyslogMsg's JSONValues
-// map, it will be  created.
-func NewTagArrayMutator(tagKey, tagValue string) Mutator {
-	return &TagArrayMutator{
-		tagKey:   tagKey,
-		tagValue: tagValue,
-	}
-}
-
-// Mutate modifies the SyslogMsg passed by reference
-func (t *TagArrayMutator) Mutate(msg *SyslogMsg) error {
-	var err error
-
-	if _, ok := msg.JSONValues[t.tagKey]; !ok {
-		msg.JSONValues[t.tagKey] = make([]interface{}, 0)
-	}
-
-	switch val := msg.JSONValues[t.tagKey].(type) {
-	case []interface{}:
-		msg.JSONValues[t.tagKey] = append(val, t.tagValue)
-		return err
-	default:
-		err = fmt.Errorf("tags key in message was not an array")
-		return err
-	}
-}
-
-// TagMatcher is a matcher that matches on RFC3164 tag
-type TagMatcher struct {
-	match string
-}
-
-// Match applies the match to a SyslogMsg
-func (t *TagMatcher) Match(msg *SyslogMsg) bool {
-	if msg.Tag == t.match {
-		return true
-	}
-	return false
-}
-
-// NewTagMatcher creates a TagMatcher that tries
-// to match on the supplied string
-func NewTagMatcher(match string) Matcher {
-	return &TagMatcher{match: match}
-}
-
-// ContentContainsMatcher matches when the Content
-// field of a SyslogMsg contains the supplied string
-type ContentContainsMatcher struct {
-	match string
-}
-
-// Match applies the match to a SyslogMsg
-func (c *ContentContainsMatcher) Match(msg *SyslogMsg) bool {
-	return strings.Contains(msg.Content, c.match)
-}
-
-// NewContentContainsMatcher creates a ContentContainsMatcher that
-// tries to match on the supplied string
-func NewContentContainsMatcher(match string) Matcher {
-	return &ContentContainsMatcher{match: match}
 }
 
 // TagRangeTransformer is a Transformer implementation that tags
@@ -185,7 +112,7 @@ func (t *TagRangeTransformer) Do() (*TagRangeTransformer, error) {
 	return t, nil
 }
 
-// reap reaps expired keys from the trackingDB
+// reap reaps expired keys from the trackingDB.
 func (t *TagRangeTransformer) reap() {
 	t.mutex.Lock()
 	defer t.mutex.Unlock()

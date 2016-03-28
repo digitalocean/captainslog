@@ -10,7 +10,7 @@ import (
 // keys in CEE syslog messages and replaces them. This can be used in
 // conjunction with systems such as Elasticsearch 2.x which do not
 // fully support ECMA-404 (for instance, Elasticsearch 2.x does
-// not allow periods in key names, which ECMA-404 does)
+// not allow periods in key names, which ECMA-404 does).
 type JSONKeyTransformer struct {
 	oldVal   string
 	newVal   string
@@ -22,20 +22,20 @@ func NewJSONKeyTransformer() *JSONKeyTransformer {
 	return &JSONKeyTransformer{}
 }
 
-// OldString sets the string that will be replaced in JSON keys
+// OldString sets the string that will be replaced in JSON keys.
 func (t *JSONKeyTransformer) OldString(oldstring string) *JSONKeyTransformer {
 	t.oldVal = oldstring
 	return t
 }
 
-// NewString sets the string that OldString will be converted to
+// NewString sets the string that OldString will be converted to.
 func (t *JSONKeyTransformer) NewString(newstring string) *JSONKeyTransformer {
 	t.newVal = newstring
 	return t
 }
 
 // Do finishes construction of the JSONKeyTransformer and returns an
-// error if any arguments are missing
+// error if any arguments are missing.
 func (t *JSONKeyTransformer) Do() (*JSONKeyTransformer, error) {
 	if t.oldVal == "" || t.newVal == "" {
 		return t, fmt.Errorf("bad arguments")
@@ -44,7 +44,7 @@ func (t *JSONKeyTransformer) Do() (*JSONKeyTransformer, error) {
 	return t, nil
 }
 
-// recurseTransformMap is a helper method to visit multi-level JSON used by Transform
+// recurseTransformMap is a helper method to visit multi-level JSON used by Transform.
 func (t *JSONKeyTransformer) recurseTransformMap(in, out map[string]interface{}) {
 	for k, v := range in {
 		transformedKey := t.replacer.Replace(k)
@@ -63,7 +63,7 @@ func (t *JSONKeyTransformer) recurseTransformMap(in, out map[string]interface{})
 	}
 }
 
-// recurseTransformArr is a helper method to visit multi-level JSON used by recurseTransformMap
+// recurseTransformArr is a helper method to visit multi-level JSON used by recurseTransformMap.
 func (t *JSONKeyTransformer) recurseTransformArr(in, out []interface{}) {
 	for i, v := range in {
 		switch cv := v.(type) {
@@ -81,11 +81,11 @@ func (t *JSONKeyTransformer) recurseTransformArr(in, out []interface{}) {
 	}
 }
 
-// Transform accepts a SyslogMsg, and if it is a CEE syslog message, "fixes"
-// the JSON keys to be compatible with Elasticsearch 2.x
+// Transform accepts a SyslogMsg, and if it is a CEE syslog message, replaces
+// the old string with the new string.
 func (t *JSONKeyTransformer) Transform(msg SyslogMsg) (SyslogMsg, error) {
 	if !msg.IsCee {
-		return msg, ErrTransform
+		return msg, fmt.Errorf("Transform expected msg.IsCee == true")
 	}
 
 	transformedStructured := make(map[string]interface{})
