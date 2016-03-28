@@ -20,7 +20,7 @@ type SyslogMsg struct {
 	JSONValues map[string]interface{}
 }
 
-// NewSyslogMsg creates a new empty SyslogMsg
+// NewSyslogMsg creates a new empty SyslogMsg.
 func NewSyslogMsg() SyslogMsg {
 	return SyslogMsg{
 		JSONValues: make(map[string]interface{}),
@@ -28,14 +28,14 @@ func NewSyslogMsg() SyslogMsg {
 }
 
 // NewSyslogMsgFromBytes accepts a []byte containing an RFC3164
-// message and returns a SyslogMsg
+// message and returns a SyslogMsg.
 func NewSyslogMsgFromBytes(b []byte) (SyslogMsg, error) {
 	msg := NewSyslogMsg()
 	err := Unmarshal(b, &msg)
 	return msg, err
 }
 
-// String returns the SyslogMsg as an RFC3164 string
+// String returns the SyslogMsg as an RFC3164 string.
 func (s *SyslogMsg) String() string {
 	var content string
 	if s.IsCee {
@@ -61,7 +61,7 @@ func (s *SyslogMsg) String() string {
 	return fmt.Sprintf("<%d>%s %s %s%s%s\n", s.Pri.Priority, s.Time.Format(s.timeFormat), s.Host, s.Tag, s.Cee, content)
 }
 
-// Bytes returns the SyslogMsg as RFC3164 []byte
+// Bytes returns the SyslogMsg as RFC3164 []byte.
 func (s *SyslogMsg) Bytes() []byte {
 	return []byte(s.String())
 }

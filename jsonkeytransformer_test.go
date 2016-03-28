@@ -41,8 +41,8 @@ func TestJSONKeyTransformerTransformNotCee(t *testing.T) {
 
 	_, err = transformer.Transform(original)
 
-	if want, got := ErrTransform, err; want != got {
-		t.Errorf("want '%v', got '%v'", want, got)
+	if err == nil {
+		t.Error("expected error")
 	}
 }
 

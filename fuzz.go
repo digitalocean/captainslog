@@ -2,6 +2,7 @@
 
 package captainslog
 
+// Fuzz is for use with gofozz.
 func Fuzz(data []byte) int {
 	// data = data.append('\n')
 	msg := NewSyslogMsg()
