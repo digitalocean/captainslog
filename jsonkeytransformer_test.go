@@ -1,9 +1,6 @@
 package captainslog
 
-import (
-	"fmt"
-	"testing"
-)
+import "testing"
 
 func TestJSONKeyTransformerTransform(t *testing.T) {
 	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: @cee:{\"first.name\":\"captain\",\"one.two.three\":\"four.five.six\"}\n")
@@ -88,28 +85,6 @@ func TestJSONKeyTransformerTransformFloat(t *testing.T) {
 	if want, got := "{\"num_float\":3.0000000000000000000000000000000001,\"num_sci_1\":1e1,\"num_sci_2\":-0.12e+3}", transformed.Content; want != got {
 		t.Errorf("want '%s', got '%s'", want, got)
 	}
-}
-
-func ExampleJSONKeyTransformer() {
-	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: @cee:{\"first.name\":\"captain\"}\n")
-	original, err := NewSyslogMsgFromBytes(b)
-	if err != nil {
-		panic(err)
-	}
-
-	transformer, err := NewJSONKeyTransformer().OldString(".").NewString("_").Do()
-
-	if err != nil {
-		panic(err)
-	}
-
-	transformed, err := transformer.Transform(original)
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Printf(transformed.Content)
-	// Output: {"first_name":"captain"}
 }
 
 func BenchmarkJSONKeyTransformerTransform(b *testing.B) {
