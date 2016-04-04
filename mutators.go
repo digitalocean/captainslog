@@ -31,6 +31,11 @@ func (t *TagArrayMutator) Mutate(msg *SyslogMsg) error {
 	switch val := msg.JSONValues[t.tagKey].(type) {
 	case []interface{}:
 		msg.JSONValues[t.tagKey] = append(val, t.tagValue)
+		if !msg.IsCee {
+			msg.IsCee = true
+			msg.Cee = " @cee:"
+			msg.JSONValues["msg"] = msg.Content[1:]
+		}
 		return err
 	default:
 		err = fmt.Errorf("tags key in message was not an array")

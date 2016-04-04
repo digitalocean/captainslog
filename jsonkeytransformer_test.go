@@ -9,11 +9,7 @@ func TestJSONKeyTransformerTransform(t *testing.T) {
 		t.Error(err)
 	}
 
-	transformer, err := NewJSONKeyTransformer().OldString(".").NewString("_").Do()
-	if err != nil {
-		t.Error(err)
-	}
-
+	transformer := NewJSONKeyTransformer(".", "_")
 	transformed, err := transformer.Transform(original)
 	if err != nil {
 		t.Error(err)
@@ -31,11 +27,7 @@ func TestJSONKeyTransformerTransformNotCee(t *testing.T) {
 		t.Error(err)
 	}
 
-	transformer, err := NewJSONKeyTransformer().OldString(".").NewString("_").Do()
-	if err != nil {
-		t.Error(err)
-	}
-
+	transformer := NewJSONKeyTransformer(".", "_")
 	_, err = transformer.Transform(original)
 
 	if err == nil {
@@ -50,11 +42,7 @@ func TestJSONKeyTransformerTransformMultilevelJSON(t *testing.T) {
 		t.Error(err)
 	}
 
-	transformer, err := NewJSONKeyTransformer().OldString(".").NewString("_").Do()
-	if err != nil {
-		t.Error(err)
-	}
-
+	transformer := NewJSONKeyTransformer(".", "_")
 	transformed, err := transformer.Transform(original)
 	if err != nil {
 		t.Error(err)
@@ -72,11 +60,7 @@ func TestJSONKeyTransformerTransformFloat(t *testing.T) {
 		t.Error(err)
 	}
 
-	transformer, err := NewJSONKeyTransformer().OldString(".").NewString("_").Do()
-	if err != nil {
-		t.Error(err)
-	}
-
+	transformer := NewJSONKeyTransformer(".", "_")
 	transformed, err := transformer.Transform(original)
 	if err != nil {
 		t.Error(err)
@@ -90,11 +74,7 @@ func TestJSONKeyTransformerTransformFloat(t *testing.T) {
 func BenchmarkJSONKeyTransformerTransform(b *testing.B) {
 	m := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: @cee:{\"first.name\":\"captain\"}\n")
 
-	transformer, err := NewJSONKeyTransformer().OldString(".").NewString("_").Do()
-	if err != nil {
-		panic(err)
-	}
-
+	transformer := NewJSONKeyTransformer(".", "_")
 	for i := 0; i < b.N; i++ {
 		original, err := NewSyslogMsgFromBytes(m)
 		if err != nil {
