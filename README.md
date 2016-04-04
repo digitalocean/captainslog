@@ -8,6 +8,8 @@ We are now continuing development along this path, and plan on working on a set 
 The RFC3164 syslog parser has been tested rigorously with go-fuzz and is being used heavily in production.
 ## Usage
 ### NewSyslogMsgFromBytes
+NewSyslogMsgFromBytes accepts a []byte containing an RFC3164 message and returns a SyslogMsg. If the original RFC3164 message is a CEE enhanced message, the JSON will be parsed into the JSONValues map[string]inferface{}.
+
 ```go
 b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: engage\n")
 msg, err := captainslog.NewSyslogMsgFromBytes(b)
@@ -16,36 +18,54 @@ if err != nil {
 }
 ```
 ### Mutators
+#### TagArrayMutator
+TagArrayMutator is a Mutator that modifies a syslog message by adding a tag value to an array of tags. If the message was not already a CEE message, it will be converted to one and the original message content will be assigned to the "msg" attribute.
 ```go
-tagger := captainslog.NewTagArrayMutator("tags", "captain")
-err = tagger.Mutate(&msg)
 ```
-
 ### Transformers
+#### JSONKeyTransformer
+JSONKeyTransformer is a Transformer implementation that finds periods in JSON keys in CEE syslog messages and replaces them. This can be used in conjunction with systems such as Elasticsearch 2.x which do not fully support ECMA-404 (for instance, Elasticsearch 2.x does not allow periods in key names, which ECMA-404 does).
 ```go
-transformer, err := captainslog.NewTagRangeTransformer().
-	Select(captainslog.Program, "test:").
-	StartMatch(captainslog.Contains, "the final frontier").
-	EndMatch(captainslog.Contains, "to boldly go").
-	AddTag("tags", "intro").
-	WaitDuration(1).
-	Do()
+msg, err := captainslog.NewSyslogMsgFromBytes([]byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: @cee:{\"first.name\":\"benjamin\", \"last.name\":\"sisko\"}\n"))
+
+transformer := captainslog.NewJSONKeyTransformer(".", "_")
 
 msg, err = transformer.Transform(msg)
+if err != nil {
+	panic(err)
+}
+
+fmt.Print(msg.String())
+```
+```
+<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: @cee:{"first_name":"benjamin","last_name":"sisko"}
 ```
 
-### Pipelines
+#### MutateRangeTransformer
+MutateRangeTransformer is a Transformer implementation that mutates log lines that meet a selection criteria and are logged between a start and end match. Matches are performed by implementations of the Matcher interface.
 ```go
-elasticKeyFixer, err := captainslog.NewJSONKeyTransformer().
-	OldString(".").
-	NewString("_").
-	Do()
+msg, err := captainslog.NewSyslogMsgFromBytes([]byte("<4>2016-03-08T14:59:36.293816+00:00 host.example.com trek: space, the final frontier\n"))
+if err != nil {
+	panic(err)
+}
 
-err = captainslog.NewPipeline().
-	From(reader).
-	Transform(elasticKeyFixer).
-	To(writer).
-	Do()
+transformer := captainslog.NewMutateRangeTransformer(
+	captainslog.NewTagMatcher("trek:"),
+	captainslog.NewContentContainsMatcher("space"),
+	captainslog.NewContentContainsMatcher("space"),
+	captainslog.NewTagArrayMutator("tags", "intro"),
+	1,
+)
+
+msg, err = transformer.Transform(msg)
+if err != nil {
+	panic(err)
+}
+
+fmt.Print(msg.String())
+```
+```
+<4>2016-03-08T14:59:36.293816+00:00 host.example.com trek: @cee:{"msg":"space, the final frontier","tags":["intro"]}
 ```
 
 ## Contibution Guidelines
