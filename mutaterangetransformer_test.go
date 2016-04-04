@@ -10,23 +10,19 @@ type testCase struct {
 	result bool
 }
 
-func TestRangeTransformerTTL(t *testing.T) {
+func TestMutateTransformerTTL(t *testing.T) {
 	input := []byte("<4>2016-03-08T14:59:36.293816+00:00 host.example.com kernel: [15803005.789011] ------------[ cut here ]------------\n")
 
-	transformer, err := NewTagRangeTransformer().
-		Select(Program, "kernel:").
-		StartMatch(Contains, "[ cut here ]").
-		EndMatch(Contains, "[ end trace").
-		AddTag("tags", "trace").
-		WaitDuration(1).
-		Do()
-
-	if err != nil {
-		t.Error(err)
-	}
+	transformer := NewMutateRangeTransformer(
+		NewTagMatcher("kernel:"),
+		NewContentContainsMatcher("[ cut here ]"),
+		NewContentContainsMatcher("[ end trace"),
+		NewTagArrayMutator("tags", "trace"),
+		1,
+	)
 
 	original := NewSyslogMsg()
-	err = Unmarshal(input, &original)
+	err := Unmarshal(input, &original)
 	if err != nil {
 		t.Error(err)
 	}
@@ -57,7 +53,7 @@ func TestRangeTransformerTTL(t *testing.T) {
 	transformer.mutex.Unlock()
 }
 
-func TestTagRangeTransformerTransform(t *testing.T) {
+func TestMutateRangeTransformerTransform(t *testing.T) {
 	cases := []testCase{
 		testCase{
 			input:  []byte("<4>2016-03-08T14:59:36.293816+00:00 host.example.com kernel: [15803005.789010] this line is not part of the trace\n"),
@@ -85,17 +81,13 @@ func TestTagRangeTransformerTransform(t *testing.T) {
 		},
 	}
 
-	transformer, err := NewTagRangeTransformer().
-		Select(Program, "kernel:").
-		StartMatch(Contains, "[ cut here ]").
-		EndMatch(Contains, "[ end trace").
-		AddTag("tags", "trace").
-		WaitDuration(60).
-		Do()
-
-	if err != nil {
-		t.Error(err)
-	}
+	transformer := NewMutateRangeTransformer(
+		NewTagMatcher("kernel:"),
+		NewContentContainsMatcher("[ cut here ]"),
+		NewContentContainsMatcher("[ end trace"),
+		NewTagArrayMutator("tags", "trace"),
+		60,
+	)
 
 	for i, v := range cases {
 		original := NewSyslogMsg()
@@ -117,20 +109,55 @@ func TestTagRangeTransformerTransform(t *testing.T) {
 	}
 }
 
-func BenchmarkTagRangeTransformerTransform(b *testing.B) {
+func TestMutateRangeTransformerSameStartAndEnd(t *testing.T) {
+	cases := []testCase{
+		testCase{
+			input:  []byte("<182>2016-03-29T18:53:31.149989+00:00 host.example.com rsyslogd-pstats: @cee:{\"failed\":0,\"name\":\"forward_out_tcp1\",\"origin\":\"core.action\",\"processed\":0,\"resumed\":0,\"suspended\":0,\"suspended_duration\":0}\n"),
+			result: true,
+		},
+		testCase{
+			input:  []byte("<182>2016-03-29T18:53:31.149989+00:00 host.example.com rsyslogd-pstats: @cee:{\"failed\":0,\"name\":\"forward_out_tcp1\",\"origin\":\"core.action\",\"processed\":0,\"resumed\":0,\"suspended\":0,\"suspended_duration\":0}\n"),
+			result: true,
+		},
+	}
+
+	transformer := NewMutateRangeTransformer(
+		NewTagMatcher("rsyslogd-pstats:"),
+		NewTagMatcher("rsyslogd-pstats:"),
+		NewTagMatcher("rsyslogd-pstats:"),
+		NewTagArrayMutator("tags", "trace"),
+		1,
+	)
+
+	for i, v := range cases {
+		original, err := NewSyslogMsgFromBytes(v.input)
+		if err != nil {
+			t.Error(err)
+		}
+
+		mutated, err := transformer.Transform(original)
+		if err != nil {
+			t.Error(err)
+		}
+
+		_, hasTagsKey := mutated.JSONValues["tags"]
+
+		if want, got := v.result, hasTagsKey; want != got {
+			t.Errorf("case %d: want '%v', got '%v'", i, want, got)
+		}
+	}
+}
+
+func BenchmarkMutatgeRangeTransformerTransform(b *testing.B) {
 	m := []byte("<4>2016-03-08T14:59:36.293816+00:00 host.example.com kernel: [15803005.789011] ------------[ cut here ]------------\n")
 
-	transformer, err := NewTagRangeTransformer().
-		Select(Program, "kernel:").
-		StartMatch(Contains, "[ cut here ]").
-		EndMatch(Contains, "[ end trace").
-		AddTag("tags", "trace").
-		WaitDuration(60).
-		Do()
-
-	if err != nil {
-		panic(err)
-	}
+	transformer := NewMutateRangeTransformer(
+		NewTagMatcher("kernel:"),
+		NewContentContainsMatcher("[ cut here ]"),
+		NewContentContainsMatcher("[ end trace"),
+		NewTagArrayMutator("tags", "trace"),
+		60,
+	)
 
 	for i := 0; i < b.N; i++ {
 		original := NewSyslogMsg()

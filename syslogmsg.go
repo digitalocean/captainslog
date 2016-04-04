@@ -28,7 +28,9 @@ func NewSyslogMsg() SyslogMsg {
 }
 
 // NewSyslogMsgFromBytes accepts a []byte containing an RFC3164
-// message and returns a SyslogMsg.
+// message and returns a SyslogMsg. If the original RFC3164
+// message is a CEE enhanced message, the JSON will be
+// parsed into the JSONValues map[string]inferface{}
 func NewSyslogMsgFromBytes(b []byte) (SyslogMsg, error) {
 	msg := NewSyslogMsg()
 	err := Unmarshal(b, &msg)
