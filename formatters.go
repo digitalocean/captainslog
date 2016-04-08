@@ -2,6 +2,7 @@ package captainslog
 
 import "encoding/json"
 
+// ToJSONBytes converts the SyslogMsg to pure JSON
 func ToJSONBytes(s *SyslogMsg) []byte {
 	m := make(map[string]interface{})
 	for k, v := range s.JSONValues {

@@ -40,6 +40,9 @@ func NewSyslogMsgFromBytes(b []byte) (SyslogMsg, error) {
 	return msg, err
 }
 
+// AddTagArray adds a tag to an array of tags at the key. If the key
+// does not already exist, it will create the key and initially it
+// to a []interface{}.
 func (s *SyslogMsg) AddTagArray(key string, value interface{}) error {
 	if _, ok := s.JSONValues[key]; !ok {
 		s.JSONValues[key] = make([]interface{}, 0)
@@ -59,6 +62,8 @@ func (s *SyslogMsg) AddTagArray(key string, value interface{}) error {
 	}
 }
 
+// AddTag adds a tag to the value at key. If the key exists,
+// the value currently at the key will be overwritten.
 func (s *SyslogMsg) AddTag(key string, value interface{}) {
 	s.JSONValues[key] = value
 }

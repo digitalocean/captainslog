@@ -5,6 +5,9 @@ import (
 	"time"
 )
 
+// TimeSinceTransformer is a transformer implementation that adds a "since" tag with
+// pointing to duration in seconds since the last time a log line that matched the
+// selectors was seen.
 type TimeSinceTransformer struct {
 	selectMatchers []Matcher
 	trackingDB     map[string]time.Time
@@ -13,7 +16,7 @@ type TimeSinceTransformer struct {
 	mutex          *sync.Mutex
 }
 
-// NewMutateRangeTransformer creates a new MutateRangeTransformer.
+// NewTimeSinceTransformer creates a new TimeSinceTransformer.
 func NewTimeSinceTransformer(waitTime time.Duration, selecters ...Matcher) *TimeSinceTransformer {
 	t := &TimeSinceTransformer{
 		selectMatchers: selecters,
