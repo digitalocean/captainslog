@@ -1,9 +1,6 @@
 package captainslog
 
-import (
-	"testing"
-	"time"
-)
+import "testing"
 
 type testCase struct {
 	input  []byte
@@ -44,7 +41,7 @@ func TestMutateTransformerTTL(t *testing.T) {
 	}
 	transformer.mutex.Unlock()
 
-	time.Sleep(2 * time.Second)
+	transformer.reap()
 
 	transformer.mutex.Lock()
 	if want, got := 0, len(transformer.trackingDB); want != got {
