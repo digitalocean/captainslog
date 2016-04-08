@@ -2,6 +2,7 @@ package captainslog
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"testing"
 	"time"
@@ -704,6 +705,26 @@ func BenchmarkParserParseAndBytes(b *testing.B) {
 		}
 		if msg.Content != " hello world" {
 			panic("unexpected msg.Content")
+		}
+	}
+}
+
+func BenchmarkJSONParseNoJSON(b *testing.B) {
+	m := []byte("hello world")
+	val := make(map[string]interface{})
+	for i := 0; i < b.N; i++ {
+		err := json.Unmarshal(m, &val)
+		if err == nil {
+			panic("wat")
+		}
+	}
+}
+
+func BenchmarkJSONCheckFirstChar(b *testing.B) {
+	m := []byte("hello world")
+	for i := 0; i < b.N; i++ {
+		if bytes.Compare(m[0:0], []byte("{")) == 0 {
+			panic("wee")
 		}
 	}
 }
