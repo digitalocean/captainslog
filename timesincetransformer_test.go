@@ -11,7 +11,7 @@ func TestTimeSinceTransformerTransform(t *testing.T) {
 	}
 
 	transformer := NewTimeSinceTransformer(
-		86400,
+		"since", 86400,
 		NewContentContainsMatcher("inblock"),
 	)
 

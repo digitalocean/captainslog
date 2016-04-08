@@ -5,10 +5,11 @@ import (
 	"time"
 )
 
-// TimeSinceTransformer is a transformer implementation that adds a "since" tag with
+// TimeSinceTransformer is a transformer implementation that adds a tag with
 // pointing to duration in seconds since the last time a log line that matched the
 // selectors was seen.
 type TimeSinceTransformer struct {
+	key            string
 	selectMatchers []Matcher
 	trackingDB     map[string]time.Time
 	ttl            time.Duration
@@ -17,8 +18,9 @@ type TimeSinceTransformer struct {
 }
 
 // NewTimeSinceTransformer creates a new TimeSinceTransformer.
-func NewTimeSinceTransformer(waitTime time.Duration, selecters ...Matcher) *TimeSinceTransformer {
+func NewTimeSinceTransformer(key string, waitTime time.Duration, selecters ...Matcher) *TimeSinceTransformer {
 	t := &TimeSinceTransformer{
+		key:            key,
 		selectMatchers: selecters,
 		ttl:            waitTime * time.Second,
 		trackingDB:     make(map[string]time.Time),
@@ -70,6 +72,6 @@ func (t *TimeSinceTransformer) Transform(msg SyslogMsg) (SyslogMsg, error) {
 
 	duration := time.Since(t.trackingDB[logID])
 	t.trackingDB[logID] = time.Now()
-	msg.AddTag("since", duration.Seconds())
+	msg.AddTag(t.key, duration.Seconds())
 	return msg, err
 }
