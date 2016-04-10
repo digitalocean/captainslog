@@ -13,6 +13,7 @@ func TestTimeSinceTransformerTransform(t *testing.T) {
 	transformer := NewTimeSinceTransformer(
 		"since", 86400,
 		NewContentContainsMatcher("inblock"),
+		NewTagMatcher("rsyslogd-pstats:"),
 	)
 
 	for i, v := range cases {
