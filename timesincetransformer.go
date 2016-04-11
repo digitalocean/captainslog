@@ -5,6 +5,8 @@ import (
 	"time"
 )
 
+const nanosPerMilli = 1000000
+
 // TimeSinceTransformer is a transformer implementation that adds a tag with
 // pointing to duration in seconds since the last time a log line that matched the
 // selectors was seen.
@@ -68,10 +70,11 @@ func (t *TimeSinceTransformer) Transform(msg SyslogMsg) (SyslogMsg, error) {
 
 	if _, ok := t.trackingDB[logID]; !ok {
 		t.trackingDB[logID] = time.Now()
+		msg.AddTag(t.key, 0)
+	} else {
+		duration := time.Since(t.trackingDB[logID])
+		t.trackingDB[logID] = time.Now()
+		msg.AddTag(t.key, duration.Nanoseconds()/nanosPerMilli)
 	}
-
-	duration := time.Since(t.trackingDB[logID])
-	t.trackingDB[logID] = time.Now()
-	msg.AddTag(t.key, duration.Seconds())
 	return msg, err
 }
