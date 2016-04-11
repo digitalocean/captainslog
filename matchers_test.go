@@ -19,6 +19,10 @@ func TestTagMatcher(t *testing.T) {
 		t.Errorf("want %t, got %t", want, got)
 	}
 
+	prefixMatcher := NewTagMatcher("tes")
+	if want, got := true, prefixMatcher.Match(&msg); want != got {
+		t.Errorf("want %t, got %t", want, got)
+	}
 }
 
 func TestContentContainsMatcher(t *testing.T) {
@@ -37,5 +41,4 @@ func TestContentContainsMatcher(t *testing.T) {
 	if want, got := false, badMatcher.Match(&msg); want != got {
 		t.Errorf("want %t, got %t", want, got)
 	}
-
 }

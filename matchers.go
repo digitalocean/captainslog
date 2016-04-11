@@ -10,10 +10,7 @@ type TagMatcher struct {
 // Match applies the match to a SyslogMsg. It returns
 // true of the tag matches and false if not.
 func (t *TagMatcher) Match(msg *SyslogMsg) bool {
-	if msg.Tag == t.match {
-		return true
-	}
-	return false
+	return strings.HasPrefix(msg.Tag, t.match)
 }
 
 // NewTagMatcher creates a TagMatcher that tries
