@@ -98,3 +98,17 @@ func (s *SyslogMsg) String() string {
 func (s *SyslogMsg) Bytes() []byte {
 	return []byte(s.String())
 }
+
+func (s *SyslogMsg) JSON() ([]byte, error) {
+	content := make(map[string]interface{})
+	for key, value := range s.JSONValues {
+		content[key] = value
+	}
+
+	content["syslog_time"] = s.Time
+	content["syslog_host"] = s.Host
+	content["syslog_program"] = s.Tag
+
+	b, err := json.Marshal(content)
+	return b, err
+}
