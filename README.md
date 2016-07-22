@@ -4,7 +4,7 @@ Efficient and accurate syslog parser written in Golang. Tested rigorously with g
 
 ## Usage
 ### NewSyslogMsgFromBytes
-NewSyslogMsgFromBytes accepts a []byte containing an RFC3164 message and returns a SyslogMsg. If the original RFC3164 message is a CEE enhanced message, the JSON will be parsed into the JSONValues map[string]inferface{}.
+NewSyslogMsgFromBytes accepts a []byte containing an RFC3164 message and returns a SyslogMsg. If the original RFC3164 message is a CEE message, the JSON will be parsed into the JSONValues map[string]inferface{}.
 
 ```go
 b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: engage\n")
