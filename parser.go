@@ -38,30 +38,14 @@ var (
 )
 
 type parser struct {
-	tokenStart int
-	tokenEnd   int
-	buf        []byte
-	bufLen     int
-	bufEnd     int
-	cur        int
-	msg        *SyslogMsg
-}
-
-// Unmarshal accepts a byte array containing an rfc3164 message
-// and a pointer to a SyslogMsg struct, and attempts to parse
-// the message and fill in the struct.
-func Unmarshal(b []byte, msg *SyslogMsg) error {
-
-	p := &parser{
-		buf:    b,
-		bufLen: len(b),
-		bufEnd: len(b) - 1,
-		cur:    0,
-		msg:    msg,
-	}
-
-	err := p.parse()
-	return err
+	tokenStart        int
+	tokenEnd          int
+	buf               []byte
+	bufLen            int
+	bufEnd            int
+	cur               int
+	requireTerminator bool
+	msg               *SyslogMsg
 }
 
 func (p *parser) parse() error {
@@ -282,10 +266,14 @@ func (p *parser) parseContent() error {
 	for p.buf[p.cur] != '\n' {
 		p.cur++
 		if p.cur > p.bufEnd {
-			return ErrBadContent
+			if p.requireTerminator {
+				return ErrBadContent
+			} else {
+				goto exitContentSearch
+			}
 		}
 	}
-
+exitContentSearch:
 	p.tokenEnd = p.cur
 
 	if p.msg.IsCee {
