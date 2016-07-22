@@ -587,9 +587,10 @@ func TestUnmarshalNoTag(t *testing.T) {
 func TestUnmarshalContentNotTerminated(t *testing.T) {
 	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: hello wo")
 	_, err := NewSyslogMsgFromBytes(b)
-
-	if want, got := ErrBadContent, err; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+	// 2016-07-22: changed this test to pass as default NewSyslogMsgFromBytes now
+	// treats end buffer as end of content.
+	if err != nil {
+		t.Error(err)
 	}
 }
 

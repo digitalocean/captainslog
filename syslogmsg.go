@@ -8,6 +8,24 @@ import (
 	"time"
 )
 
+// Unmarshal accepts a byte array containing an rfc3164 message
+// and a pointer to a SyslogMsg struct, and attempts to parse
+// the message and fill in the struct.
+func Unmarshal(b []byte, msg *SyslogMsg) error {
+
+	p := &parser{
+		buf:               b,
+		bufLen:            len(b),
+		bufEnd:            len(b) - 1,
+		cur:               0,
+		requireTerminator: false,
+		msg:               msg,
+	}
+
+	err := p.parse()
+	return err
+}
+
 // SyslogMsg holds an Unmarshaled rfc3164 message.
 type SyslogMsg struct {
 	Pri        Priority
