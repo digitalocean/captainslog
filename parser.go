@@ -3,8 +3,38 @@ package captainslog
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"strconv"
 	"time"
+)
+
+const (
+	priStart = '<'
+	priEnd   = '>'
+	priLen   = 5
+)
+
+var (
+	//ErrBadTime is returned when the time of a message is malformed.
+	ErrBadTime = errors.New("Time not found")
+
+	//ErrBadHost is returned when the host of a message is malformed.
+	ErrBadHost = errors.New("Host not found")
+
+	//ErrBadTag is returned when the tag of a message is malformed.
+	ErrBadTag = errors.New("Tag not found")
+
+	//ErrBadContent is returned when the content of a message is malformed.
+	ErrBadContent = errors.New("Content not found")
+
+	timeFormats = []string{
+		"2006-01-02T15:04:05.999999-07:00",
+		"2006-01-02T15:04:05.999-07:00",
+		"2006-01-02T15:04:05-07:00",
+		"Mon Jan _2 15:04:05 MST 2006",
+		"Mon Jan _2 15:04:05 2006",
+		"Mon Jan _2 15:04:05",
+	}
 )
 
 type parser struct {

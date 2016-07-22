@@ -2,10 +2,15 @@ package captainslog
 
 import "errors"
 
-const (
-	priStart = '<'
-	priEnd   = '>'
-	priLen   = 5
+var (
+	//ErrBadPriority is returned when the priority of a message is malformed.
+	ErrBadPriority = errors.New("Priority not found")
+
+	//ErrBadFacility is returned when a facility is not within allowed values.
+	ErrBadFacility = errors.New("Facility not found")
+
+	//ErrBadSeverity is returned when a severity is not within allowed values.
+	ErrBadSeverity = errors.New("Severity not found")
 )
 
 // Severity represents a syslog severity code
@@ -37,9 +42,7 @@ const (
 	Debug Severity = 7
 )
 
-// FacilityToFacilityText accepts a Faciity and returns it's
-// string representation
-func SeverityToSeverityText(s Severity) string {
+func (s Severity) String() string {
 	var severity_text string
 
 	switch s {
@@ -130,9 +133,7 @@ const (
 	Local7 Facility = 23
 )
 
-// FacilityToFacilityText accepts a Faciity and returns it's
-// string representation
-func FacilityToFacilityText(f Facility) string {
+func (f Facility) String() string {
 	var facility_text string
 
 	switch f {
@@ -181,92 +182,6 @@ func FacilityToFacilityText(f Facility) string {
 
 	return facility_text
 }
-
-// FacilityTextToFacility accepts a string representation of a syslog
-// facility and returns a captainslog.Facility
-func FacilityTextToFacility(facilityText string) (Facility, error) {
-	var err error
-	var facility Facility
-
-	switch facilityText {
-	case "KERN":
-		facility = Kern
-	case "USER":
-		facility = User
-	case "MAIL":
-		facility = Mail
-	case "DAEMON":
-		facility = Daemon
-	case "AUTH":
-		facility = Auth
-	case "SYSLOG":
-		facility = Syslog
-	case "LPR":
-		facility = LPR
-	case "NEWS":
-		facility = News
-	case "UUCP":
-		facility = UUCP
-	case "CRON":
-		facility = Cron
-	case "AUTHPRIV":
-		facility = AuthPriv
-	case "FTP":
-		facility = FTP
-	case "LOCAL0":
-		facility = Local0
-	case "LOCAL1":
-		facility = Local1
-	case "LOCAL2":
-		facility = Local2
-	case "LOCAL3":
-		facility = Local3
-	case "LOCAL4":
-		facility = Local4
-	case "LOCAL5":
-		facility = Local5
-	case "LOCAL6":
-		facility = Local6
-	case "LOCAL7":
-		facility = Local7
-	default:
-		facility = Facility(-1)
-		err = ErrBadFacility
-	}
-	return facility, err
-}
-
-var (
-	//ErrBadPriority is returned when the priority of a message is malformed.
-	ErrBadPriority = errors.New("Priority not found")
-
-	//ErrBadFacility is returned when a facility is not within allowed values.
-	ErrBadFacility = errors.New("Facility not found")
-
-	//ErrBadSeverity is returned when a severity is not within allowed values.
-	ErrBadSeverity = errors.New("Severity not found")
-
-	//ErrBadTime is returned when the time of a message is malformed.
-	ErrBadTime = errors.New("Time not found")
-
-	//ErrBadHost is returned when the host of a message is malformed.
-	ErrBadHost = errors.New("Host not found")
-
-	//ErrBadTag is returned when the tag of a message is malformed.
-	ErrBadTag = errors.New("Tag not found")
-
-	//ErrBadContent is returned when the content of a message is malformed.
-	ErrBadContent = errors.New("Content not found")
-
-	timeFormats = []string{
-		"2006-01-02T15:04:05.999999-07:00",
-		"2006-01-02T15:04:05.999-07:00",
-		"2006-01-02T15:04:05-07:00",
-		"Mon Jan _2 15:04:05 MST 2006",
-		"Mon Jan _2 15:04:05 2006",
-		"Mon Jan _2 15:04:05",
-	}
-)
 
 // Priority represents the PRI of a rfc3164 message.
 type Priority struct {

@@ -108,9 +108,11 @@ func (s *SyslogMsg) JSON() ([]byte, error) {
 	content["syslog_time"] = s.Time
 	content["syslog_host"] = s.Host
 	content["syslog_program"] = s.Tag
-	content["syslog_facility"] = FacilityToFacilityText(s.Pri.Facility)
-	content["syslog_severity"] = SeverityToSeverityText(s.Pri.Severity)
-	content["syslog_content"] = s.Content
+	content["syslog_facilitytext"] = s.Pri.Facility.String()
+	content["syslog_severitytext"] = s.Pri.Severity.String()
+	if !s.IsCee {
+		content["syslog_content"] = s.Content
+	}
 	b, err := json.Marshal(content)
 	return b, err
 }

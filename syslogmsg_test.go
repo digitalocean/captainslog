@@ -27,7 +27,24 @@ func TestSyslogMsgPlainWithAddedKeys(t *testing.T) {
 
 }
 
-func TestSyslogMsgJSON(t *testing.T) {
+func TestSyslogMsgJSONFromPlain(t *testing.T) {
+	input := []byte("<4>2016-03-08T14:59:36.293816+00:00 host.example.com kernel: test\n")
+	msg, err := NewSyslogMsgFromBytes(input)
+	if err != nil {
+		t.Error(err)
+	}
+
+	output, err := msg.JSON()
+	if err != nil {
+		t.Error(err)
+	}
+
+	wanted := `{"syslog_content":" test","syslog_facilitytext":"kern","syslog_host":"host.example.com","syslog_program":"kernel:","syslog_severitytext":"warning","syslog_time":"2016-03-08T14:59:36.293816Z"}`
+	if want, got := wanted, string(output); want != got {
+		t.Errorf("want %q, got %q", want, got)
+	}
+}
+func TestSyslogMsgJSONFromCEE(t *testing.T) {
 	input := []byte("<4>2016-03-08T14:59:36.293816+00:00 host.example.com kernel: @cee:{\"a\":1}\n")
 	msg, err := NewSyslogMsgFromBytes(input)
 	if err != nil {
@@ -39,7 +56,7 @@ func TestSyslogMsgJSON(t *testing.T) {
 		t.Error(err)
 	}
 
-	wanted := `{"a":1,"syslog_content":"{\"a\":1}","syslog_facility":"kern","syslog_host":"host.example.com","syslog_program":"kernel:","syslog_severity":"warning","syslog_time":"2016-03-08T14:59:36.293816Z"}`
+	wanted := `{"a":1,"syslog_facilitytext":"kern","syslog_host":"host.example.com","syslog_program":"kernel:","syslog_severitytext":"warning","syslog_time":"2016-03-08T14:59:36.293816Z"}`
 	if want, got := wanted, string(output); want != got {
 		t.Errorf("want %q, got %q", want, got)
 	}
