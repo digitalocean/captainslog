@@ -39,7 +39,8 @@ func TestSyslogMsgJSON(t *testing.T) {
 		t.Error(err)
 	}
 
-	if want, got := "{\"a\":1,\"syslog_host\":\"host.example.com\",\"syslog_program\":\"kernel:\",\"syslog_time\":\"2016-03-08T14:59:36.293816Z\"}", string(output); want != got {
+	wanted := `{"a":1,"syslog_content":"{\"a\":1}","syslog_facility":"kern","syslog_host":"host.example.com","syslog_program":"kernel:","syslog_severity":"warning","syslog_time":"2016-03-08T14:59:36.293816Z"}`
+	if want, got := wanted, string(output); want != got {
 		t.Errorf("want %q, got %q", want, got)
 	}
 }

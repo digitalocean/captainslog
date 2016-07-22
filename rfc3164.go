@@ -2,6 +2,12 @@ package captainslog
 
 import "errors"
 
+const (
+	priStart = '<'
+	priEnd   = '>'
+	priLen   = 5
+)
+
 // Severity represents a syslog severity code
 type Severity int
 
@@ -29,68 +35,38 @@ const (
 
 	// Debug is a debug level rfc3164 severity
 	Debug Severity = 7
-
-	priStart = '<'
-	priEnd   = '>'
-	priLen   = 5
 )
+
+// FacilityToFacilityText accepts a Faciity and returns it's
+// string representation
+func SeverityToSeverityText(s Severity) string {
+	var severity_text string
+
+	switch s {
+	case Emerg:
+		severity_text = "emerg"
+	case Alert:
+		severity_text = "alert"
+	case Crit:
+		severity_text = "crit"
+	case Err:
+		severity_text = "err"
+	case Warning:
+		severity_text = "warning"
+	case Notice:
+		severity_text = "notice"
+	case Info:
+		severity_text = "info"
+	case Debug:
+		severity_text = "debug"
+	default:
+	}
+
+	return severity_text
+}
 
 // Facility represents a syslog facility code
 type Facility int
-
-// FacilityTextToFacility accepts a string representation of a syslog
-// facility and returns a captainslog.Facility
-func FacilityTextToFacility(facilityText string) (Facility, error) {
-	var err error
-	var facility Facility
-
-	switch facilityText {
-	case "KERN":
-		facility = Kern
-	case "USER":
-		facility = User
-	case "MAIL":
-		facility = Mail
-	case "DAEMON":
-		facility = Daemon
-	case "AUTH":
-		facility = Auth
-	case "SYSLOG":
-		facility = Syslog
-	case "LPR":
-		facility = LPR
-	case "NEWS":
-		facility = News
-	case "UUCP":
-		facility = UUCP
-	case "CRON":
-		facility = Cron
-	case "AUTHPRIV":
-		facility = AuthPriv
-	case "FTP":
-		facility = FTP
-	case "LOCAL0":
-		facility = Local0
-	case "LOCAL1":
-		facility = Local1
-	case "LOCAL2":
-		facility = Local2
-	case "LOCAL3":
-		facility = Local3
-	case "LOCAL4":
-		facility = Local4
-	case "LOCAL5":
-		facility = Local5
-	case "LOCAL6":
-		facility = Local6
-	case "LOCAL7":
-		facility = Local7
-	default:
-		facility = Facility(-1)
-		err = ErrBadFacility
-	}
-	return facility, err
-}
 
 const (
 	//Kern is the kernel rfc3164 facility.
@@ -153,6 +129,112 @@ const (
 	// Local7 is the local7 rfc3164 facility.
 	Local7 Facility = 23
 )
+
+// FacilityToFacilityText accepts a Faciity and returns it's
+// string representation
+func FacilityToFacilityText(f Facility) string {
+	var facility_text string
+
+	switch f {
+	case Kern:
+		facility_text = "kern"
+	case User:
+		facility_text = "user"
+	case Mail:
+		facility_text = "mail"
+	case Daemon:
+		facility_text = "daemon"
+	case Auth:
+		facility_text = "auth"
+	case Syslog:
+		facility_text = "syslog"
+	case LPR:
+		facility_text = "lpr"
+	case News:
+		facility_text = "news"
+	case UUCP:
+		facility_text = "uucp"
+	case Cron:
+		facility_text = "cron"
+	case AuthPriv:
+		facility_text = "authpriv"
+	case FTP:
+		facility_text = "ftp"
+	case Local0:
+		facility_text = "local0"
+	case Local1:
+		facility_text = "local1"
+	case Local2:
+		facility_text = "local2"
+	case Local3:
+		facility_text = "local3"
+	case Local4:
+		facility_text = "local4"
+	case Local5:
+		facility_text = "local5"
+	case Local6:
+		facility_text = "local6"
+	case Local7:
+		facility_text = "local7"
+	default:
+	}
+
+	return facility_text
+}
+
+// FacilityTextToFacility accepts a string representation of a syslog
+// facility and returns a captainslog.Facility
+func FacilityTextToFacility(facilityText string) (Facility, error) {
+	var err error
+	var facility Facility
+
+	switch facilityText {
+	case "KERN":
+		facility = Kern
+	case "USER":
+		facility = User
+	case "MAIL":
+		facility = Mail
+	case "DAEMON":
+		facility = Daemon
+	case "AUTH":
+		facility = Auth
+	case "SYSLOG":
+		facility = Syslog
+	case "LPR":
+		facility = LPR
+	case "NEWS":
+		facility = News
+	case "UUCP":
+		facility = UUCP
+	case "CRON":
+		facility = Cron
+	case "AUTHPRIV":
+		facility = AuthPriv
+	case "FTP":
+		facility = FTP
+	case "LOCAL0":
+		facility = Local0
+	case "LOCAL1":
+		facility = Local1
+	case "LOCAL2":
+		facility = Local2
+	case "LOCAL3":
+		facility = Local3
+	case "LOCAL4":
+		facility = Local4
+	case "LOCAL5":
+		facility = Local5
+	case "LOCAL6":
+		facility = Local6
+	case "LOCAL7":
+		facility = Local7
+	default:
+		facility = Facility(-1)
+		err = ErrBadFacility
+	}
+	return facility, err
+}
 
 var (
 	//ErrBadPriority is returned when the priority of a message is malformed.
