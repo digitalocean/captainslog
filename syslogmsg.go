@@ -56,7 +56,7 @@ func NewSyslogMsgFromBytes(b []byte) (SyslogMsg, error) {
 	msg := NewSyslogMsg()
 	err := Unmarshal(b, &msg)
 	if msg.Time.Year() == 0 {
-		msg.Time = time.Now()
+		msg.Time.AddDate(time.Now().Year(), 0, 0)
 	}
 	return msg, err
 }
