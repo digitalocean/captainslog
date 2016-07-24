@@ -379,7 +379,7 @@ func TestUnmarshalUnixTime(t *testing.T) {
 
 	ts := msg.Time
 
-	if want, got := 0, ts.Year(); want != got {
+	if want, got := time.Now().Year(), ts.Year(); want != got {
 		t.Errorf("want '%d', got '%d'", want, got)
 	}
 
