@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"os"
 	"strconv"
 	"time"
 )
@@ -49,11 +50,23 @@ type Parser struct {
 	cur               int
 	requireTerminator bool
 	msg               *SyslogMsg
+	optionNoHostname  bool
 }
 
 // NewParser returns a new parser
-func NewParser() *Parser {
-	return &Parser{}
+func NewParser(options ...func(*Parser)) *Parser {
+	p := Parser{}
+	for _, option := range options {
+		option(&p)
+	}
+	return &p
+}
+
+// OptionNoHostname sets the parser to not expect the hostname
+// as part of the syslog message, and instead ask the host
+// for its hostname.
+func OptionNoHostname(p *Parser) {
+	p.optionNoHostname = true
 }
 
 // Parser accepts a []byte and tries to parse it into a SyslogMsg
@@ -82,9 +95,17 @@ func (p *Parser) parse() error {
 		return err
 	}
 
-	err = p.parseHost()
-	if err != nil {
-		return err
+	if p.optionNoHostname {
+		host, err := os.Hostname()
+		if err != nil {
+			return ErrBadHost
+		}
+		p.msg.Host = host
+	} else {
+		err = p.parseHost()
+		if err != nil {
+			return err
+		}
 	}
 
 	err = p.parseTag()

@@ -3,6 +3,7 @@ package captainslog
 import (
 	"bytes"
 	"encoding/json"
+	"os"
 	"testing"
 	"time"
 )
@@ -83,6 +84,29 @@ func TestNewParserAndParse(t *testing.T) {
 		t.Errorf("want '%s', got '%s'", want, got)
 	}
 
+}
+
+func TestParserOptionNoHostname(t *testing.T) {
+	b := []byte("<86>Jul 24 11:53:47 sudo: pam_unix(sudo:session): session opened for user root by (uid=0)")
+	p := NewParser(OptionNoHostname)
+
+	if want, got := true, p.optionNoHostname; want != got {
+		t.Errorf("want '%b', got '%b'", want, got)
+	}
+
+	host, err := os.Hostname()
+	if err != nil {
+		t.Error(err)
+	}
+
+	msg, err := p.ParseBytes(b)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if want, got := host, msg.Host; want != got {
+		t.Errorf("want '%s', got '%s'", want, got)
+	}
 }
 
 func TestNewSyslogMsgFromBytes(t *testing.T) {
