@@ -3,12 +3,89 @@ package captainslog
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"testing"
 	"time"
 )
 
-func TestUnmarshal(t *testing.T) {
+func TestNewParserAndParse(t *testing.T) {
+	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: hello world\n")
+	p := NewParser()
+
+	msg, err := p.ParseBytes(b)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if want, got := Local7, msg.Pri.Facility; want != got {
+		t.Errorf("want '%d', got '%d'", want, got)
+	}
+
+	if want, got := Debug, msg.Pri.Severity; want != got {
+		t.Errorf("want '%d', got '%d'", want, got)
+	}
+
+	ts := msg.Time
+
+	if want, got := 2006, ts.Year(); want != got {
+		t.Errorf("want '%d', got '%d'", want, got)
+	}
+
+	if want, got := time.Month(1), ts.Month(); want != got {
+		t.Errorf("want '%d', got '%d'", want, got)
+	}
+
+	if want, got := 2, ts.Day(); want != got {
+		t.Errorf("want '%d', got '%d'", want, got)
+	}
+
+	if want, got := 15, ts.Hour(); want != got {
+		t.Errorf("want '%d', got '%d'", want, got)
+	}
+
+	if want, got := 4, ts.Minute(); want != got {
+		t.Errorf("want '%d', got '%d'", want, got)
+	}
+
+	if want, got := 5, ts.Second(); want != got {
+		t.Errorf("want '%d', got '%d'", want, got)
+	}
+
+	if want, got := 999999, ts.Nanosecond()/1000; want != got {
+		t.Errorf("want '%d', got '%d'", want, got)
+	}
+
+	_, zoneOffsetSecs := ts.Zone()
+	if want, got := -25200, zoneOffsetSecs; want != got {
+		t.Errorf("want '%d', got '%d'", want, got)
+	}
+
+	if want, got := "host.example.org", msg.Host; want != got {
+		t.Errorf("want '%s', got '%s'", want, got)
+	}
+
+	if want, got := "test:", msg.Tag; want != got {
+		t.Errorf("want '%s', got '%s'", want, got)
+	}
+
+	if want, got := false, msg.IsCee; want != got {
+		t.Errorf("want '%v', got '%v'", want, got)
+	}
+
+	if want, got := " hello world", msg.Content; want != got {
+		t.Errorf("want '%s', got '%s'", want, got)
+	}
+
+	if want, got := 0, bytes.Compare(b, msg.Bytes()); want != got {
+		t.Errorf("want '%v', got '%v'", want, got)
+	}
+
+	if want, got := string(b), msg.String(); want != got {
+		t.Errorf("want '%s', got '%s'", want, got)
+	}
+
+}
+
+func TestNewSyslogMsgFromBytes(t *testing.T) {
 	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: hello world\n")
 	msg, err := NewSyslogMsgFromBytes(b)
 	if err != nil {
@@ -621,18 +698,6 @@ func TestFuzzFindings(t *testing.T) {
 	for _, fuzzData := range inputs {
 		testFuzzFindings(fuzzData, t)
 	}
-}
-
-func ExampleUnmarshal() {
-	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: hello world\n")
-	msg, err := NewSyslogMsgFromBytes(b)
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Printf("Syslog message was from host '%s'", msg.Host)
-	// Output: Syslog message was from host 'host.example.org'
-
 }
 
 func BenchmarkParserParse(b *testing.B) {

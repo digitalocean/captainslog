@@ -39,7 +39,8 @@ var (
 	}
 )
 
-type parser struct {
+// Parser is a parser for syslog messages.
+type Parser struct {
 	tokenStart        int
 	tokenEnd          int
 	buf               []byte
@@ -50,7 +51,28 @@ type parser struct {
 	msg               *SyslogMsg
 }
 
-func (p *parser) parse() error {
+// NewParser returns a new parser
+func NewParser() *Parser {
+	return &Parser{}
+}
+
+// Parser accepts a []byte and tries to parse it into a SyslogMsg
+func (p *Parser) ParseBytes(b []byte) (SyslogMsg, error) {
+	p.buf = b
+	p.bufLen = len(b)
+	p.bufEnd = len(b) - 1
+	p.cur = 0
+	msg := NewSyslogMsg()
+	p.msg = &msg
+
+	err := p.parse()
+	if p.msg.Time.Year() == 0 {
+		p.msg.Time = p.msg.Time.AddDate(time.Now().Year(), 0, 0)
+	}
+	return *p.msg, err
+}
+
+func (p *Parser) parse() error {
 	err := p.parsePri()
 	if err != nil {
 		return err
@@ -79,11 +101,7 @@ func (p *parser) parse() error {
 	return err
 }
 
-func isNum(c byte) bool {
-	return c >= '0' && c <= '9'
-}
-
-func (p *parser) parsePri() error {
+func (p *Parser) parsePri() error {
 	var err error
 
 	if p.bufLen == 0 || (p.cur+priLen) > p.bufEnd {
@@ -102,7 +120,7 @@ func (p *parser) parsePri() error {
 	}
 
 	for p.buf[p.cur] != priEnd {
-		if !isNum(p.buf[p.cur]) {
+		if !(p.buf[p.cur] >= '0' && p.buf[p.cur] <= '9') {
 			return ErrBadPriority
 		}
 
@@ -126,7 +144,7 @@ func (p *parser) parsePri() error {
 	return err
 }
 
-func (p *parser) parseTime() error {
+func (p *Parser) parseTime() error {
 	var err error
 	var foundTime bool
 
@@ -153,7 +171,7 @@ func (p *parser) parseTime() error {
 	return err
 }
 
-func (p *parser) parseHost() error {
+func (p *Parser) parseHost() error {
 	var err error
 	for p.buf[p.cur] == ' ' {
 		p.cur++
@@ -176,7 +194,7 @@ func (p *parser) parseHost() error {
 	return err
 }
 
-func (p *parser) parseTag() error {
+func (p *Parser) parseTag() error {
 	var err error
 
 	for p.buf[p.cur] == ' ' {
@@ -204,7 +222,7 @@ func (p *parser) parseTag() error {
 	return err
 }
 
-func (p *parser) parseCee() error {
+func (p *Parser) parseCee() error {
 	if p.cur >= len(p.buf)-1 {
 		return ErrBadContent
 	}
@@ -257,7 +275,7 @@ func (p *parser) parseCee() error {
 	return nil
 }
 
-func (p *parser) parseContent() error {
+func (p *Parser) parseContent() error {
 	if p.cur >= len(p.buf)-1 {
 		return ErrBadContent
 	}
