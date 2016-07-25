@@ -9,7 +9,7 @@ func TestSyslogMsgPlainWithAddedKeys(t *testing.T) {
 	input := []byte("<4>2016-03-08T14:59:36.293816+00:00 host.example.com kernel: [15803005.789011] ------------[ cut here ]------------\n")
 
 	msg := NewSyslogMsg()
-	err := Unmarshal(input, &msg)
+	msg, err := NewSyslogMsgFromBytes(input)
 	if err != nil {
 		t.Error(err)
 	}
