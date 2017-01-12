@@ -61,3 +61,21 @@ func TestSyslogMsgJSONFromCEE(t *testing.T) {
 		t.Errorf("want %q, got %q", want, got)
 	}
 }
+
+func TestSyslogMsgJSONFromCEEWithDontParseJSON(t *testing.T) {
+	input := []byte("<4>2016-03-08T14:59:36.293816+00:00 host.example.com kernel: @cee:{\"a\":1}\n")
+	msg, err := NewSyslogMsgFromBytes(input, OptionDontParseJSON)
+	if err != nil {
+		t.Error(err)
+	}
+
+	output, err := msg.JSON()
+	if err != nil {
+		t.Error(err)
+	}
+
+	wanted := `{"a":1,"syslog_facilitytext":"kern","syslog_host":"host.example.com","syslog_program":"kernel:","syslog_severitytext":"warning","syslog_time":"2016-03-08T14:59:36.293816Z"}`
+	if want, got := wanted, string(output); want != got {
+		t.Errorf("want %q, got %q", want, got)
+	}
+}

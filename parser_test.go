@@ -91,7 +91,7 @@ func TestParserOptionNoHostname(t *testing.T) {
 	p := NewParser(OptionNoHostname)
 
 	if want, got := true, p.optionNoHostname; want != got {
-		t.Errorf("want '%b', got '%b'", want, got)
+		t.Errorf("want '%v', got '%v'", want, got)
 	}
 
 	host, err := os.Hostname()
@@ -105,6 +105,36 @@ func TestParserOptionNoHostname(t *testing.T) {
 	}
 
 	if want, got := host, msg.Host; want != got {
+		t.Errorf("want '%s', got '%s'", want, got)
+	}
+}
+
+func TestParseOptionDontParseJSON(t *testing.T) {
+	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: @cee:{\"a\":\"b\"}\n")
+	p := NewParser(OptionDontParseJSON)
+
+	if want, got := true, p.optionDontParseJSON; want != got {
+		t.Errorf("want '%v', got '%v'", want, got)
+	}
+
+	msg, err := p.ParseBytes(b)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if want, got := true, msg.IsCee; want != got {
+		t.Errorf("want '%v', got '%v'", want, got)
+	}
+
+	if want, got := " @cee:", msg.Cee; want != got {
+		t.Errorf("want '%s', got '%s'", want, got)
+	}
+
+	if want, got := "{\"a\":\"b\"}", msg.Content; want != got {
+		t.Errorf("want '%s', got '%s'", want, got)
+	}
+
+	if want, got := string(b), msg.String(); want != got {
 		t.Errorf("want '%s', got '%s'", want, got)
 	}
 }
@@ -745,6 +775,21 @@ func BenchmarkParserParseCEE(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		b.SetBytes(int64(len(m)))
 		msg, err := NewSyslogMsgFromBytes(m)
+		if err != nil {
+			panic(err)
+		}
+		if msg.Host != "host.example.org" {
+			panic("unexpected msg.Host")
+		}
+	}
+}
+
+func BenchmarkParserParseCEEWithOptionDontParseJSON(b *testing.B) {
+	m := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: @cee:{\"a\":\"b\"}\n")
+
+	for i := 0; i < b.N; i++ {
+		b.SetBytes(int64(len(m)))
+		msg, err := NewSyslogMsgFromBytes(m, OptionDontParseJSON)
 		if err != nil {
 			panic(err)
 		}
