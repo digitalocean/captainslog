@@ -42,15 +42,16 @@ var (
 
 // Parser is a parser for syslog messages.
 type Parser struct {
-	tokenStart        int
-	tokenEnd          int
-	buf               []byte
-	bufLen            int
-	bufEnd            int
-	cur               int
-	requireTerminator bool
-	msg               *SyslogMsg
-	optionNoHostname  bool
+	tokenStart          int
+	tokenEnd            int
+	buf                 []byte
+	bufLen              int
+	bufEnd              int
+	cur                 int
+	requireTerminator   bool
+	optionNoHostname    bool
+	optionDontParseJSON bool
+	msg                 *SyslogMsg
 }
 
 // NewParser returns a new parser
@@ -69,13 +70,25 @@ func OptionNoHostname(p *Parser) {
 	p.optionNoHostname = true
 }
 
-// Parser accepts a []byte and tries to parse it into a SyslogMsg
+// OptionDontParseJSON sets the parser to not parse JSON in
+// the content field of the message. A subsequent call to SyslogMsg.String()
+// or SyslogMsg.Bytes() will then use SyslogMsg.Content for the content field,
+// unless SyslogMsg.JSONValues have been added since the message was
+// originally parsed. If SyslogMsg.JSONValues have been added, the call to
+// SyslogMsg.String() or SyslogMsg.Bytes() will then parse the JSON, and
+// merge the results with the keys in SyslogMsg.JSONVaues.
+func OptionDontParseJSON(p *Parser) {
+	p.optionDontParseJSON = true
+}
+
+// ParseBytes accepts a []byte and tries to parse it into a SyslogMsg
 func (p *Parser) ParseBytes(b []byte) (SyslogMsg, error) {
 	p.buf = b
 	p.bufLen = len(b)
 	p.bufEnd = len(b) - 1
 	p.cur = 0
 	msg := NewSyslogMsg()
+	msg.optionDontParseJSON = p.optionDontParseJSON
 	p.msg = &msg
 
 	err := p.parse()
@@ -309,15 +322,14 @@ func (p *Parser) parseContent() error {
 		if p.cur > p.bufEnd {
 			if p.requireTerminator {
 				return ErrBadContent
-			} else {
-				goto exitContentSearch
 			}
+			goto exitContentSearch
 		}
 	}
 exitContentSearch:
 	p.tokenEnd = p.cur
 
-	if p.msg.IsCee {
+	if p.msg.IsCee && !p.optionDontParseJSON {
 		decoder := json.NewDecoder(bytes.NewBuffer(p.buf[p.tokenStart:p.tokenEnd]))
 		decoder.UseNumber()
 		err = decoder.Decode(&p.msg.JSONValues)

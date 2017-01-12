@@ -43,29 +43,29 @@ const (
 )
 
 func (s Severity) String() string {
-	var severity_text string
+	var severityText string
 
 	switch s {
 	case Emerg:
-		severity_text = "emerg"
+		severityText = "emerg"
 	case Alert:
-		severity_text = "alert"
+		severityText = "alert"
 	case Crit:
-		severity_text = "crit"
+		severityText = "crit"
 	case Err:
-		severity_text = "err"
+		severityText = "err"
 	case Warning:
-		severity_text = "warning"
+		severityText = "warning"
 	case Notice:
-		severity_text = "notice"
+		severityText = "notice"
 	case Info:
-		severity_text = "info"
+		severityText = "info"
 	case Debug:
-		severity_text = "debug"
+		severityText = "debug"
 	default:
 	}
 
-	return severity_text
+	return severityText
 }
 
 // Facility represents a syslog facility code
@@ -134,53 +134,53 @@ const (
 )
 
 func (f Facility) String() string {
-	var facility_text string
+	var faciliyText string
 
 	switch f {
 	case Kern:
-		facility_text = "kern"
+		faciliyText = "kern"
 	case User:
-		facility_text = "user"
+		faciliyText = "user"
 	case Mail:
-		facility_text = "mail"
+		faciliyText = "mail"
 	case Daemon:
-		facility_text = "daemon"
+		faciliyText = "daemon"
 	case Auth:
-		facility_text = "auth"
+		faciliyText = "auth"
 	case Syslog:
-		facility_text = "syslog"
+		faciliyText = "syslog"
 	case LPR:
-		facility_text = "lpr"
+		faciliyText = "lpr"
 	case News:
-		facility_text = "news"
+		faciliyText = "news"
 	case UUCP:
-		facility_text = "uucp"
+		faciliyText = "uucp"
 	case Cron:
-		facility_text = "cron"
+		faciliyText = "cron"
 	case AuthPriv:
-		facility_text = "authpriv"
+		faciliyText = "authpriv"
 	case FTP:
-		facility_text = "ftp"
+		faciliyText = "ftp"
 	case Local0:
-		facility_text = "local0"
+		faciliyText = "local0"
 	case Local1:
-		facility_text = "local1"
+		faciliyText = "local1"
 	case Local2:
-		facility_text = "local2"
+		faciliyText = "local2"
 	case Local3:
-		facility_text = "local3"
+		faciliyText = "local3"
 	case Local4:
-		facility_text = "local4"
+		faciliyText = "local4"
 	case Local5:
-		facility_text = "local5"
+		faciliyText = "local5"
 	case Local6:
-		facility_text = "local6"
+		faciliyText = "local6"
 	case Local7:
-		facility_text = "local7"
+		faciliyText = "local7"
 	default:
 	}
 
-	return facility_text
+	return faciliyText
 }
 
 // Priority represents the PRI of a rfc3164 message.

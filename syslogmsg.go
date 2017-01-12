@@ -1,6 +1,7 @@
 package captainslog
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -10,16 +11,17 @@ import (
 
 // SyslogMsg holds an Unmarshaled rfc3164 message.
 type SyslogMsg struct {
-	Pri        Priority
-	Time       time.Time
-	Host       string
-	Tag        string
-	Cee        string
-	IsCee      bool
-	Content    string
-	timeFormat string
-	JSONValues map[string]interface{}
-	mutex      *sync.Mutex
+	Pri                 Priority
+	Time                time.Time
+	Host                string
+	Tag                 string
+	Cee                 string
+	IsCee               bool
+	optionDontParseJSON bool
+	Content             string
+	timeFormat          string
+	JSONValues          map[string]interface{}
+	mutex               *sync.Mutex
 }
 
 // NewSyslogMsg creates a new empty SyslogMsg.
@@ -34,8 +36,8 @@ func NewSyslogMsg() SyslogMsg {
 // message and returns a SyslogMsg. If the original RFC3164
 // message is a CEE enhanced message, the JSON will be
 // parsed into the JSONValues map[string]inferface{}
-func NewSyslogMsgFromBytes(b []byte) (SyslogMsg, error) {
-	p := &Parser{}
+func NewSyslogMsgFromBytes(b []byte, options ...func(*Parser)) (SyslogMsg, error) {
+	p := NewParser(options...)
 	msg, err := p.ParseBytes(b)
 	return msg, err
 }
@@ -71,7 +73,7 @@ func (s *SyslogMsg) AddTag(key string, value interface{}) {
 // String returns the SyslogMsg as an RFC3164 string.
 func (s *SyslogMsg) String() string {
 	var content string
-	if s.IsCee {
+	if s.IsCee && !s.optionDontParseJSON {
 		b, err := json.Marshal(s.JSONValues)
 		if err != nil {
 			panic(err)
@@ -99,8 +101,19 @@ func (s *SyslogMsg) Bytes() []byte {
 	return []byte(s.String())
 }
 
+// JSON returns a JSON representation of the message encoded in a []byte. Syslog fields are named with
+// a "syslog_" prefix to avoid potential collision with fields from the message body.
 func (s *SyslogMsg) JSON() ([]byte, error) {
 	content := make(map[string]interface{})
+	if s.optionDontParseJSON && s.IsCee {
+		decoder := json.NewDecoder(bytes.NewBuffer([]byte(s.Content)))
+		decoder.UseNumber()
+		err := decoder.Decode(&content)
+		if err != nil {
+			return []byte(""), err
+		}
+
+	}
 	for key, value := range s.JSONValues {
 		content[key] = value
 	}
@@ -110,9 +123,11 @@ func (s *SyslogMsg) JSON() ([]byte, error) {
 	content["syslog_program"] = s.Tag
 	content["syslog_facilitytext"] = s.Pri.Facility.String()
 	content["syslog_severitytext"] = s.Pri.Severity.String()
+
 	if !s.IsCee {
 		content["syslog_content"] = s.Content
 	}
+
 	b, err := json.Marshal(content)
 	return b, err
 }
