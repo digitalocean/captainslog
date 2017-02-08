@@ -37,6 +37,19 @@ var (
 		"Mon Jan _2 15:04:05",
 		"Jan _2 15:04:05",
 		"Jan 02 15:04:05",
+
+		// these are here because go's time.Format call truncates 0s when converting
+		// to a string, even if the format specifies a longer string. eg,
+		// .999990 will become .99999. they are at the end of the list because
+		// timetamps like this when dealing with syslog traffic should
+		// be rare to non existent when dealing with logs from anything other
+		// than go code.
+
+		"2006-01-02T15:04:05.99999-07:00",
+		"2006-01-02T15:04:05.9999-07:00",
+		"2006-01-02T15:04:05.999-07:00",
+		"2006-01-02T15:04:05.99-07:00",
+		"2006-01-02T15:04:05.9-07:00",
 	}
 )
 

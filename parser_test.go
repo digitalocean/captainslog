@@ -501,6 +501,14 @@ func TestUnmarshalTagEndHandling(t *testing.T) {
 	}
 }
 
+func TestHandlingTruncatedSubseconds(t *testing.T) {
+	b := []byte("<191>2006-01-02T15:04:05.99999-07:00 host.example.org test: hello world\n")
+	_, err := NewSyslogMsgFromBytes(b)
+	if err != nil {
+		t.Error(err)
+	}
+}
+
 func TestUnmarshalUnixTime(t *testing.T) {
 	b := []byte("<38>Mon Jan  2 15:04:05 host.example.org test: hello world\n")
 	msg, err := NewSyslogMsgFromBytes(b)
