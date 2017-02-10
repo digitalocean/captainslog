@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 	"time"
+	"unicode"
 )
 
 const (
@@ -14,6 +15,15 @@ const (
 	priEnd       = '>'
 	priLen       = 5
 	dateStampLen = 10
+
+	// the following are used for checking for likely YYYY-MM-DD datestamps
+	// in checkForLikelyDateTime
+	yearLen     = 4
+	startMonth  = 5
+	monthLen    = 2
+	dayLen      = 2
+	startDay    = 8
+	datePartSep = "-"
 )
 
 var (
@@ -179,15 +189,36 @@ func (p *Parser) parsePri() error {
 	return err
 }
 
-// checkForDateTime checks for a YYYY-MM-DD date. This routine could be modified
-// to be more efficient, as constructing a time.Time is not necessary. For now
-// this is a simple way to avoid the complexity of checking for a valid
-// datetime, which is more complicated than it might first appear to be.
-func checkForDateTime(timeStr string) bool {
-	_, err := time.Parse(dateStampFormat, timeStr)
-	if err != nil {
+// checkForLikelyDateTime checks for a YYYY-MM-DD string. If one is found,
+// we use this to decide that trying to parse a full rsyslog style timestamp
+// is worth the cpu time.
+func checkForLikelyDateTime(b []byte) bool {
+	for i := 0; i < yearLen; i++ {
+		if !unicode.IsDigit(rune(b[i])) {
+			return false
+		}
+	}
+
+	if string(b[startMonth-1]) != datePartSep {
 		return false
 	}
+
+	for i := startMonth; i < startMonth+dayLen; i++ {
+		if !unicode.IsDigit(rune(b[i])) {
+			return false
+		}
+	}
+
+	if string(b[startDay-1]) != datePartSep {
+		return false
+	}
+
+	for i := startDay; i < startDay+dayLen; i++ {
+		if !unicode.IsDigit(rune(b[i])) {
+			return false
+		}
+	}
+
 	return true
 }
 
@@ -203,7 +234,7 @@ func (p *Parser) parseTime() error {
 		return ErrBadTime
 	}
 
-	if checkForDateTime(string(p.buf[p.cur : p.cur+dateStampLen])) {
+	if checkForLikelyDateTime(p.buf[p.cur : p.cur+dateStampLen]) {
 		tokenStart := p.cur
 		tokenEnd := p.cur
 
