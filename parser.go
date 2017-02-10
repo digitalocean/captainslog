@@ -7,12 +7,23 @@ import (
 	"os"
 	"strconv"
 	"time"
+	"unicode"
 )
 
 const (
-	priStart = '<'
-	priEnd   = '>'
-	priLen   = 5
+	priStart     = '<'
+	priEnd       = '>'
+	priLen       = 5
+	dateStampLen = 10
+
+	// the following are used for checking for likely YYYY-MM-DD datestamps
+	// in checkForLikelyDateTime
+	yearLen     = 4
+	startMonth  = 5
+	monthLen    = 2
+	dayLen      = 2
+	startDay    = 8
+	datePartSep = "-"
 )
 
 var (
@@ -28,28 +39,15 @@ var (
 	//ErrBadContent is returned when the content of a message is malformed.
 	ErrBadContent = errors.New("Content not found")
 
+	dateStampFormat   = "2006-01-02"
+	rsyslogTimeFormat = "2006-01-02T15:04:05.999999-07:00"
+
 	timeFormats = []string{
-		"2006-01-02T15:04:05.999999-07:00",
-		"2006-01-02T15:04:05.999-07:00",
-		"2006-01-02T15:04:05-07:00",
 		"Mon Jan _2 15:04:05 MST 2006",
 		"Mon Jan _2 15:04:05 2006",
 		"Mon Jan _2 15:04:05",
 		"Jan _2 15:04:05",
 		"Jan 02 15:04:05",
-
-		// these are here because go's time.Format call truncates 0s when converting
-		// to a string, even if the format specifies a longer string. eg,
-		// .999990 will become .99999. they are at the end of the list because
-		// timetamps like this when dealing with syslog traffic should
-		// be rare to non existent when dealing with logs from anything other
-		// than go code.
-
-		"2006-01-02T15:04:05.99999-07:00",
-		"2006-01-02T15:04:05.9999-07:00",
-		"2006-01-02T15:04:05.999-07:00",
-		"2006-01-02T15:04:05.99-07:00",
-		"2006-01-02T15:04:05.9-07:00",
 	}
 )
 
@@ -191,11 +189,72 @@ func (p *Parser) parsePri() error {
 	return err
 }
 
+// checkForLikelyDateTime checks for a YYYY-MM-DD string. If one is found,
+// we use this to decide that trying to parse a full rsyslog style timestamp
+// is worth the cpu time.
+func checkForLikelyDateTime(b []byte) bool {
+	for i := 0; i < yearLen; i++ {
+		if !unicode.IsDigit(rune(b[i])) {
+			return false
+		}
+	}
+
+	if string(b[startMonth-1]) != datePartSep {
+		return false
+	}
+
+	for i := startMonth; i < startMonth+dayLen; i++ {
+		if !unicode.IsDigit(rune(b[i])) {
+			return false
+		}
+	}
+
+	if string(b[startDay-1]) != datePartSep {
+		return false
+	}
+
+	for i := startDay; i < startDay+dayLen; i++ {
+		if !unicode.IsDigit(rune(b[i])) {
+			return false
+		}
+	}
+
+	return true
+}
+
 func (p *Parser) parseTime() error {
 	var err error
 	var foundTime bool
 
 	p.tokenStart = p.cur
+
+	// no timestamp format is shorter than YYYY-MM-DD, so if buffer is shorter
+	// than this it is safe to assume we don't have a valid datetime.
+	if p.cur+dateStampLen > p.bufEnd {
+		return ErrBadTime
+	}
+
+	if checkForLikelyDateTime(p.buf[p.cur : p.cur+dateStampLen]) {
+		tokenStart := p.cur
+		tokenEnd := p.cur
+
+		for p.buf[tokenEnd] != ' ' {
+			tokenEnd++
+			if tokenEnd > p.bufEnd {
+				return ErrBadTime
+			}
+		}
+
+		timeStr := string(p.buf[tokenStart:tokenEnd])
+		p.msg.Time, err = time.Parse(rsyslogTimeFormat, timeStr)
+		if err == nil {
+			p.cur = tokenEnd
+			p.tokenEnd = p.cur
+			p.msg.timeFormat = rsyslogTimeFormat
+		}
+		return err
+	}
+
 	for _, timeFormat := range timeFormats {
 		tLen := len(timeFormat)
 		if p.cur+tLen > p.bufEnd {
