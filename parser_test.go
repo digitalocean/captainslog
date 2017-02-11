@@ -1,4 +1,4 @@
-package captainslog
+package captainslog_test
 
 import (
 	"bytes"
@@ -6,22 +6,24 @@ import (
 	"os"
 	"testing"
 	"time"
+
+	"github.com/digitalocean/captainslog"
 )
 
 func TestNewParserAndParse(t *testing.T) {
 	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: hello world\n")
-	p := NewParser()
+	p := captainslog.NewParser()
 
 	msg, err := p.ParseBytes(b)
 	if err != nil {
 		t.Error(err)
 	}
 
-	if want, got := Local7, msg.Pri.Facility; want != got {
+	if want, got := captainslog.Local7, msg.Pri.Facility; want != got {
 		t.Errorf("want '%d', got '%d'", want, got)
 	}
 
-	if want, got := Debug, msg.Pri.Severity; want != got {
+	if want, got := captainslog.Debug, msg.Pri.Severity; want != got {
 		t.Errorf("want '%d', got '%d'", want, got)
 	}
 
@@ -88,11 +90,7 @@ func TestNewParserAndParse(t *testing.T) {
 
 func TestParserOptionNoHostname(t *testing.T) {
 	b := []byte("<86>Jul 24 11:53:47 sudo: pam_unix(sudo:session): session opened for user root by (uid=0)")
-	p := NewParser(OptionNoHostname)
-
-	if want, got := true, p.optionNoHostname; want != got {
-		t.Errorf("want '%v', got '%v'", want, got)
-	}
+	p := captainslog.NewParser(captainslog.OptionNoHostname)
 
 	host, err := os.Hostname()
 	if err != nil {
@@ -111,11 +109,7 @@ func TestParserOptionNoHostname(t *testing.T) {
 
 func TestParseOptionDontParseJSON(t *testing.T) {
 	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: @cee:{\"a\":\"b\"}\n")
-	p := NewParser(OptionDontParseJSON)
-
-	if want, got := true, p.optionDontParseJSON; want != got {
-		t.Errorf("want '%v', got '%v'", want, got)
-	}
+	p := captainslog.NewParser(captainslog.OptionDontParseJSON)
 
 	msg, err := p.ParseBytes(b)
 	if err != nil {
@@ -141,16 +135,16 @@ func TestParseOptionDontParseJSON(t *testing.T) {
 
 func TestNewSyslogMsgFromBytes(t *testing.T) {
 	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: hello world\n")
-	msg, err := NewSyslogMsgFromBytes(b)
+	msg, err := captainslog.NewSyslogMsgFromBytes(b)
 	if err != nil {
 		t.Error(err)
 	}
 
-	if want, got := Local7, msg.Pri.Facility; want != got {
+	if want, got := captainslog.Local7, msg.Pri.Facility; want != got {
 		t.Errorf("want '%d', got '%d'", want, got)
 	}
 
-	if want, got := Debug, msg.Pri.Severity; want != got {
+	if want, got := captainslog.Debug, msg.Pri.Severity; want != got {
 		t.Errorf("want '%d', got '%d'", want, got)
 	}
 
@@ -216,16 +210,16 @@ func TestNewSyslogMsgFromBytes(t *testing.T) {
 
 func TestUnmarshalDateNoMicros(t *testing.T) {
 	b := []byte("<191>2006-01-02T15:04:05.999-07:00 host.example.org test: hello world\n")
-	msg, err := NewSyslogMsgFromBytes(b)
+	msg, err := captainslog.NewSyslogMsgFromBytes(b)
 	if err != nil {
 		t.Error(err)
 	}
 
-	if want, got := Local7, msg.Pri.Facility; want != got {
+	if want, got := captainslog.Local7, msg.Pri.Facility; want != got {
 		t.Errorf("want '%d', got '%d'", want, got)
 	}
 
-	if want, got := Debug, msg.Pri.Severity; want != got {
+	if want, got := captainslog.Debug, msg.Pri.Severity; want != got {
 		t.Errorf("want '%d', got '%d'", want, got)
 	}
 
@@ -291,16 +285,16 @@ func TestUnmarshalDateNoMicros(t *testing.T) {
 
 func TestUnmarshalDateNoMillis(t *testing.T) {
 	b := []byte("<171>2015-12-18T18:08:17+00:00 host.example.org test: hello world\n")
-	msg, err := NewSyslogMsgFromBytes(b)
+	msg, err := captainslog.NewSyslogMsgFromBytes(b)
 	if err != nil {
 		t.Error(err)
 	}
 
-	if want, got := Local5, msg.Pri.Facility; want != got {
+	if want, got := captainslog.Local5, msg.Pri.Facility; want != got {
 		t.Errorf("want '%d', got '%d'", want, got)
 	}
 
-	if want, got := Err, msg.Pri.Severity; want != got {
+	if want, got := captainslog.Err, msg.Pri.Severity; want != got {
 		t.Errorf("want '%d', got '%d'", want, got)
 	}
 
@@ -366,7 +360,7 @@ func TestUnmarshalDateNoMillis(t *testing.T) {
 
 func TestUnmarshalCeeSpace(t *testing.T) {
 	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: @cee:{\"a\":\"b\"}\n")
-	msg, err := NewSyslogMsgFromBytes(b)
+	msg, err := captainslog.NewSyslogMsgFromBytes(b)
 	if err != nil {
 		t.Error(err)
 	}
@@ -390,7 +384,7 @@ func TestUnmarshalCeeSpace(t *testing.T) {
 
 func TestUnmarshalCeeNoSpace(t *testing.T) {
 	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test:@cee:{\"a\":\"b\"}\n")
-	msg, err := NewSyslogMsgFromBytes(b)
+	msg, err := captainslog.NewSyslogMsgFromBytes(b)
 	if err != nil {
 		t.Error(err)
 	}
@@ -410,7 +404,7 @@ func TestUnmarshalCeeNoSpace(t *testing.T) {
 
 func TestUnmarshalCeeEarlyBufferBeforeColon(t *testing.T) {
 	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test:@cee\n")
-	msg, err := NewSyslogMsgFromBytes(b)
+	msg, err := captainslog.NewSyslogMsgFromBytes(b)
 	if err != nil {
 		t.Error(err)
 	}
@@ -430,9 +424,9 @@ func TestUnmarshalCeeEarlyBufferBeforeColon(t *testing.T) {
 
 func TestUnmarshalCeeEarlyBufferAfterColon(t *testing.T) {
 	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test:@cee:\n")
-	msg, err := NewSyslogMsgFromBytes(b)
+	msg, err := captainslog.NewSyslogMsgFromBytes(b)
 
-	if want, got := ErrBadContent, err; want != got {
+	if want, got := captainslog.ErrBadContent, err; want != got {
 		t.Errorf("want '%v', got '%v'", want, got)
 	}
 
@@ -442,7 +436,7 @@ func TestUnmarshalCeeEarlyBufferAfterColon(t *testing.T) {
 }
 
 func unmarshalCeeButNotCee(t *testing.T, b []byte) {
-	msg, err := NewSyslogMsgFromBytes(b)
+	msg, err := captainslog.NewSyslogMsgFromBytes(b)
 	if err != nil {
 		t.Error(err)
 	}
@@ -468,16 +462,16 @@ func TestUnmarshalCeeButNotCee(t *testing.T) {
 
 func TestUnmarshalNoContent(t *testing.T) {
 	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test:\n")
-	_, err := NewSyslogMsgFromBytes(b)
+	_, err := captainslog.NewSyslogMsgFromBytes(b)
 
-	if want, got := ErrBadContent, err; want != got {
+	if want, got := captainslog.ErrBadContent, err; want != got {
 		t.Errorf("want '%v', got '%v'", want, got)
 	}
 }
 
 func TestUnmarshalTagEndHandling(t *testing.T) {
 	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: hello world\n")
-	msg, err := NewSyslogMsgFromBytes(b)
+	msg, err := captainslog.NewSyslogMsgFromBytes(b)
 	if err != nil {
 		t.Error(err)
 	}
@@ -487,7 +481,7 @@ func TestUnmarshalTagEndHandling(t *testing.T) {
 	}
 
 	b = []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test hello world\n")
-	msg, err = NewSyslogMsgFromBytes(b)
+	msg, err = captainslog.NewSyslogMsgFromBytes(b)
 	if err != nil {
 		t.Error(err)
 	}
@@ -503,7 +497,7 @@ func TestUnmarshalTagEndHandling(t *testing.T) {
 
 func TestHandlingTruncatedSubseconds(t *testing.T) {
 	b := []byte("<191>2006-01-02T15:04:05.99999-07:00 host.example.org test: hello world\n")
-	_, err := NewSyslogMsgFromBytes(b)
+	_, err := captainslog.NewSyslogMsgFromBytes(b)
 	if err != nil {
 		t.Error(err)
 	}
@@ -511,7 +505,7 @@ func TestHandlingTruncatedSubseconds(t *testing.T) {
 
 func TestUnmarshalUnixTime(t *testing.T) {
 	b := []byte("<38>Mon Jan  2 15:04:05 host.example.org test: hello world\n")
-	msg, err := NewSyslogMsgFromBytes(b)
+	msg, err := captainslog.NewSyslogMsgFromBytes(b)
 	if err != nil {
 		t.Error(err)
 	}
@@ -545,7 +539,7 @@ func TestUnmarshalUnixTime(t *testing.T) {
 
 func TestUnmarshalTimeANSIC(t *testing.T) {
 	b := []byte("<38>Mon Jan  2 15:04:05 2006 host.example.org test: hello world\n")
-	msg, err := NewSyslogMsgFromBytes(b)
+	msg, err := captainslog.NewSyslogMsgFromBytes(b)
 	if err != nil {
 		t.Error(err)
 	}
@@ -579,7 +573,7 @@ func TestUnmarshalTimeANSIC(t *testing.T) {
 
 func TestUnmarshalTimeUnixDate(t *testing.T) {
 	b := []byte("<38>Mon Jan  2 15:04:05 MST 2006 host.example.org test: hello world\n")
-	msg, err := NewSyslogMsgFromBytes(b)
+	msg, err := captainslog.NewSyslogMsgFromBytes(b)
 	if err != nil {
 		t.Error(err)
 	}
@@ -614,7 +608,7 @@ func TestUnmarshalTimeUnixDate(t *testing.T) {
 
 func TestUnmarshalTimeNoYear(t *testing.T) {
 	b := []byte("<38>Mon Jan  2 15:04:05 host.example.org test: hello world\n")
-	msg, err := NewSyslogMsgFromBytes(b)
+	msg, err := captainslog.NewSyslogMsgFromBytes(b)
 	if err != nil {
 		t.Error(err)
 	}
@@ -644,89 +638,89 @@ func TestUnmarshalTimeNoYear(t *testing.T) {
 
 func TestUnmarshalNoPriority(t *testing.T) {
 	b := []byte("2006-01-02T15:04:05.999999-07:00 host.example.org test: hello world\n")
-	_, err := NewSyslogMsgFromBytes(b)
+	_, err := captainslog.NewSyslogMsgFromBytes(b)
 
-	if want, got := ErrBadPriority, err; want != got {
+	if want, got := captainslog.ErrBadPriority, err; want != got {
 		t.Errorf("want '%s', got '%s'", want, got)
 	}
 }
 
 func TestUnmarshalNoPriorityEnd(t *testing.T) {
 	b := []byte("<1912006-01-02T15:04:05.999999-07:00 host.example.org test: hello world\n")
-	_, err := NewSyslogMsgFromBytes(b)
+	_, err := captainslog.NewSyslogMsgFromBytes(b)
 
-	if want, got := ErrBadPriority, err; want != got {
+	if want, got := captainslog.ErrBadPriority, err; want != got {
 		t.Errorf("want '%s', got '%s'", want, got)
 	}
 }
 
 func TestUnmarshalPriorityTooLong(t *testing.T) {
 	b := []byte("<9999>2006-01-02T15:04:05.999999-07:00 host.example.org test: hello world\n")
-	_, err := NewSyslogMsgFromBytes(b)
+	_, err := captainslog.NewSyslogMsgFromBytes(b)
 
-	if want, got := ErrBadPriority, err; want != got {
+	if want, got := captainslog.ErrBadPriority, err; want != got {
 		t.Errorf("want '%s', got '%s'", want, got)
 	}
 }
 
 func TestUnmarshalPriorityTruncated(t *testing.T) {
 	b := []byte("<99\n")
-	_, err := NewSyslogMsgFromBytes(b)
+	_, err := captainslog.NewSyslogMsgFromBytes(b)
 
-	if want, got := ErrBadPriority, err; want != got {
+	if want, got := captainslog.ErrBadPriority, err; want != got {
 		t.Errorf("want '%s', got '%s'", want, got)
 	}
 }
 
 func TestUnmarshalDateTruncated(t *testing.T) {
 	b := []byte("<191>2006-01-02T15:0")
-	_, err := NewSyslogMsgFromBytes(b)
+	_, err := captainslog.NewSyslogMsgFromBytes(b)
 
-	if want, got := ErrBadTime, err; want != got {
+	if want, got := captainslog.ErrBadTime, err; want != got {
 		t.Errorf("want '%s', got '%s'", want, got)
 	}
 }
 
 func TestUnmarshalHostTruncated(t *testing.T) {
 	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.examp")
-	_, err := NewSyslogMsgFromBytes(b)
+	_, err := captainslog.NewSyslogMsgFromBytes(b)
 
-	if want, got := ErrBadHost, err; want != got {
+	if want, got := captainslog.ErrBadHost, err; want != got {
 		t.Errorf("want '%s', got '%s'", want, got)
 	}
 }
 
 func TestUnmarshalNoHost(t *testing.T) {
 	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 ")
-	_, err := NewSyslogMsgFromBytes(b)
+	_, err := captainslog.NewSyslogMsgFromBytes(b)
 
-	if want, got := ErrBadHost, err; want != got {
+	if want, got := captainslog.ErrBadHost, err; want != got {
 		t.Errorf("want '%s', got '%s'", want, got)
 	}
 }
 
 func TestUnmarshalTagTruncated(t *testing.T) {
 	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org tes")
-	_, err := NewSyslogMsgFromBytes(b)
+	_, err := captainslog.NewSyslogMsgFromBytes(b)
 
-	if want, got := ErrBadTag, err; want != got {
+	if want, got := captainslog.ErrBadTag, err; want != got {
 		t.Errorf("want '%s', got '%s'", want, got)
 	}
 }
 
 func TestUnmarshalNoTag(t *testing.T) {
 	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org ")
-	_, err := NewSyslogMsgFromBytes(b)
+	_, err := captainslog.NewSyslogMsgFromBytes(b)
 
-	if want, got := ErrBadTag, err; want != got {
+	if want, got := captainslog.ErrBadTag, err; want != got {
 		t.Errorf("want '%s', got '%s'", want, got)
 	}
 }
 
 func TestUnmarshalContentNotTerminated(t *testing.T) {
 	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: hello wo")
-	_, err := NewSyslogMsgFromBytes(b)
-	// 2016-07-22: changed this test to pass as default NewSyslogMsgFromBytes now
+	_, err := captainslog.NewSyslogMsgFromBytes(b)
+	// 2016-07-22: changed this test to pass as default captainslog.NewSyslogMsgFromBytes now
 	// treats end buffer as end of content.
 	if err != nil {
 		t.Error(err)
@@ -735,16 +729,16 @@ func TestUnmarshalContentNotTerminated(t *testing.T) {
 
 func TestUnmarshalPriNotNumber(t *testing.T) {
 	b := []byte("<1a1>2006-01-02T15:04:05.999999-07:00 host.example.org test: hello world\n")
-	_, err := NewSyslogMsgFromBytes(b)
+	_, err := captainslog.NewSyslogMsgFromBytes(b)
 
-	if want, got := ErrBadPriority, err; want != got {
+	if want, got := captainslog.ErrBadPriority, err; want != got {
 		t.Errorf("want '%s', got '%s'", want, got)
 	}
 }
 
 func testFuzzFindings(fuzzData string, t *testing.T) {
 	b := []byte(fuzzData)
-	_, err := NewSyslogMsgFromBytes(b)
+	_, err := captainslog.NewSyslogMsgFromBytes(b)
 
 	if want, got := false, err == nil; want != got {
 		t.Errorf("want '%v', got '%v'", want, got)
@@ -767,7 +761,7 @@ func BenchmarkParserParse(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		b.SetBytes(int64(len(m)))
-		msg, err := NewSyslogMsgFromBytes(m)
+		msg, err := captainslog.NewSyslogMsgFromBytes(m)
 		if err != nil {
 			panic(err)
 		}
@@ -782,7 +776,7 @@ func BenchmarkParserParseCEE(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		b.SetBytes(int64(len(m)))
-		msg, err := NewSyslogMsgFromBytes(m)
+		msg, err := captainslog.NewSyslogMsgFromBytes(m)
 		if err != nil {
 			panic(err)
 		}
@@ -797,7 +791,7 @@ func BenchmarkParserParseCEEWithOptionDontParseJSON(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		b.SetBytes(int64(len(m)))
-		msg, err := NewSyslogMsgFromBytes(m, OptionDontParseJSON)
+		msg, err := captainslog.NewSyslogMsgFromBytes(m, captainslog.OptionDontParseJSON)
 		if err != nil {
 			panic(err)
 		}
@@ -812,7 +806,7 @@ func BenchmarkParserParseLeastLikelyTime(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		b.SetBytes(int64(len(m)))
-		msg, err := NewSyslogMsgFromBytes(m)
+		msg, err := captainslog.NewSyslogMsgFromBytes(m)
 		if err != nil {
 			panic(err)
 		}
@@ -827,7 +821,7 @@ func BenchmarkParserParseAndString(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		b.SetBytes(int64(len(m)))
-		msg, err := NewSyslogMsgFromBytes(m)
+		msg, err := captainslog.NewSyslogMsgFromBytes(m)
 		if err != nil {
 			panic(err)
 		}
@@ -842,7 +836,7 @@ func BenchmarkParserParseAndBytes(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		b.SetBytes(int64(len(m)))
-		msg, err := NewSyslogMsgFromBytes(m)
+		msg, err := captainslog.NewSyslogMsgFromBytes(m)
 		if err != nil {
 			panic(err)
 		}

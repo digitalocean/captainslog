@@ -1,171 +1,175 @@
-package captainslog
+package captainslog_test
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/digitalocean/captainslog"
+)
 
 func TestNewPriority(t *testing.T) {
-	_, err := NewPriority(Local0, Err)
+	_, err := captainslog.NewPriority(captainslog.Local0, captainslog.Err)
 	if err != nil {
 		t.Error(err)
 	}
 }
 
 func TestNewPriorityBadFacility(t *testing.T) {
-	_, err := NewPriority(Facility(30), Err)
-	if want, got := ErrBadFacility, err; want != got {
+	_, err := captainslog.NewPriority(captainslog.Facility(30), captainslog.Err)
+	if want, got := captainslog.ErrBadFacility, err; want != got {
 		t.Errorf("want '%v', got '%v'", want, got)
 	}
 }
 
 func TestNewPriorityBadSeverity(t *testing.T) {
-	_, err := NewPriority(Local0, Severity(50))
-	if want, got := ErrBadSeverity, err; want != got {
+	_, err := captainslog.NewPriority(captainslog.Local0, captainslog.Severity(50))
+	if want, got := captainslog.ErrBadSeverity, err; want != got {
 		t.Errorf("want '%v', got '%v'", want, got)
 	}
 }
 
 func TestFacilityToString(t *testing.T) {
-	var f Facility
+	var f captainslog.Facility
 
-	f = Kern
+	f = captainslog.Kern
 	if want, got := "kern", f.String(); want != got {
 		t.Errorf("want %q, got %q", want, got)
 	}
 
-	f = User
+	f = captainslog.User
 	if want, got := "user", f.String(); want != got {
 		t.Errorf("want %q, got %q", want, got)
 	}
 
-	f = Mail
+	f = captainslog.Mail
 	if want, got := "mail", f.String(); want != got {
 		t.Errorf("want %q, got %q", want, got)
 	}
 
-	f = Daemon
+	f = captainslog.Daemon
 	if want, got := "daemon", f.String(); want != got {
 		t.Errorf("want %q, got %q", want, got)
 	}
 
-	f = Auth
+	f = captainslog.Auth
 	if want, got := "auth", f.String(); want != got {
 		t.Errorf("want %q, got %q", want, got)
 	}
 
-	f = Syslog
+	f = captainslog.Syslog
 	if want, got := "syslog", f.String(); want != got {
 		t.Errorf("want %q, got %q", want, got)
 	}
 
-	f = LPR
+	f = captainslog.LPR
 	if want, got := "lpr", f.String(); want != got {
 		t.Errorf("want %q, got %q", want, got)
 	}
 
-	f = News
+	f = captainslog.News
 	if want, got := "news", f.String(); want != got {
 		t.Errorf("want %q, got %q", want, got)
 	}
 
-	f = UUCP
+	f = captainslog.UUCP
 	if want, got := "uucp", f.String(); want != got {
 		t.Errorf("want %q, got %q", want, got)
 	}
 
-	f = Cron
+	f = captainslog.Cron
 	if want, got := "cron", f.String(); want != got {
 		t.Errorf("want %q, got %q", want, got)
 	}
 
-	f = AuthPriv
+	f = captainslog.AuthPriv
 	if want, got := "authpriv", f.String(); want != got {
 		t.Errorf("want %q, got %q", want, got)
 	}
 
-	f = FTP
+	f = captainslog.FTP
 	if want, got := "ftp", f.String(); want != got {
 		t.Errorf("want %q, got %q", want, got)
 	}
 
-	f = Local0
+	f = captainslog.Local0
 	if want, got := "local0", f.String(); want != got {
 		t.Errorf("want %q, got %q", want, got)
 	}
 
-	f = Local1
+	f = captainslog.Local1
 	if want, got := "local1", f.String(); want != got {
 		t.Errorf("want %q, got %q", want, got)
 	}
 
-	f = Local2
+	f = captainslog.Local2
 	if want, got := "local2", f.String(); want != got {
 		t.Errorf("want %q, got %q", want, got)
 	}
 
-	f = Local3
+	f = captainslog.Local3
 	if want, got := "local3", f.String(); want != got {
 		t.Errorf("want %q, got %q", want, got)
 	}
 
-	f = Local4
+	f = captainslog.Local4
 	if want, got := "local4", f.String(); want != got {
 		t.Errorf("want %q, got %q", want, got)
 	}
 
-	f = Local5
+	f = captainslog.Local5
 	if want, got := "local5", f.String(); want != got {
 		t.Errorf("want %q, got %q", want, got)
 	}
 
-	f = Local6
+	f = captainslog.Local6
 	if want, got := "local6", f.String(); want != got {
 		t.Errorf("want %q, got %q", want, got)
 	}
 
-	f = Local7
+	f = captainslog.Local7
 	if want, got := "local7", f.String(); want != got {
 		t.Errorf("want %q, got %q", want, got)
 	}
 }
 
 func TestSeverityToString(t *testing.T) {
-	var s Severity
+	var s captainslog.Severity
 
-	s = Emerg
+	s = captainslog.Emerg
 	if want, got := "emerg", s.String(); want != got {
 		t.Errorf("want %q, got %q", want, got)
 	}
 
-	s = Alert
+	s = captainslog.Alert
 	if want, got := "alert", s.String(); want != got {
 		t.Errorf("want %q, got %q", want, got)
 	}
 
-	s = Crit
+	s = captainslog.Crit
 	if want, got := "crit", s.String(); want != got {
 		t.Errorf("want %q, got %q", want, got)
 	}
 
-	s = Err
+	s = captainslog.Err
 	if want, got := "err", s.String(); want != got {
 		t.Errorf("want %q, got %q", want, got)
 	}
 
-	s = Warning
+	s = captainslog.Warning
 	if want, got := "warning", s.String(); want != got {
 		t.Errorf("want %q, got %q", want, got)
 	}
 
-	s = Notice
+	s = captainslog.Notice
 	if want, got := "notice", s.String(); want != got {
 		t.Errorf("want %q, got %q", want, got)
 	}
 
-	s = Info
+	s = captainslog.Info
 	if want, got := "info", s.String(); want != got {
 		t.Errorf("want %q, got %q", want, got)
 	}
 
-	s = Debug
+	s = captainslog.Debug
 	if want, got := "debug", s.String(); want != got {
 		t.Errorf("want %q, got %q", want, got)
 	}

@@ -1,15 +1,17 @@
-package captainslog
+package captainslog_test
 
 import (
 	"strings"
 	"testing"
+
+	"github.com/digitalocean/captainslog"
 )
 
 func TestSyslogMsgPlainWithAddedKeys(t *testing.T) {
 	input := []byte("<4>2016-03-08T14:59:36.293816+00:00 host.example.com kernel: [15803005.789011] ------------[ cut here ]------------\n")
 
-	msg := NewSyslogMsg()
-	msg, err := NewSyslogMsgFromBytes(input)
+	msg := captainslog.NewSyslogMsg()
+	msg, err := captainslog.NewSyslogMsgFromBytes(input)
 	if err != nil {
 		t.Error(err)
 	}
@@ -29,7 +31,7 @@ func TestSyslogMsgPlainWithAddedKeys(t *testing.T) {
 
 func TestSyslogMsgJSONFromPlain(t *testing.T) {
 	input := []byte("<4>2016-03-08T14:59:36.293816+00:00 host.example.com kernel: test\n")
-	msg, err := NewSyslogMsgFromBytes(input)
+	msg, err := captainslog.NewSyslogMsgFromBytes(input)
 	if err != nil {
 		t.Error(err)
 	}
@@ -46,7 +48,7 @@ func TestSyslogMsgJSONFromPlain(t *testing.T) {
 }
 func TestSyslogMsgJSONFromCEE(t *testing.T) {
 	input := []byte("<4>2016-03-08T14:59:36.293816+00:00 host.example.com kernel: @cee:{\"a\":1}\n")
-	msg, err := NewSyslogMsgFromBytes(input)
+	msg, err := captainslog.NewSyslogMsgFromBytes(input)
 	if err != nil {
 		t.Error(err)
 	}
@@ -64,7 +66,7 @@ func TestSyslogMsgJSONFromCEE(t *testing.T) {
 
 func TestSyslogMsgJSONFromCEEWithDontParseJSON(t *testing.T) {
 	input := []byte("<4>2016-03-08T14:59:36.293816+00:00 host.example.com kernel: @cee:{\"a\":1}\n")
-	msg, err := NewSyslogMsgFromBytes(input, OptionDontParseJSON)
+	msg, err := captainslog.NewSyslogMsgFromBytes(input, captainslog.OptionDontParseJSON)
 	if err != nil {
 		t.Error(err)
 	}
