@@ -865,3 +865,27 @@ func BenchmarkJSONCheckFirstChar(b *testing.B) {
 		}
 	}
 }
+
+func BenchmarkParserParseInvalidDate(b *testing.B) {
+	m := []byte("<191>2006-02-30T15:04:05.999999-07:00 host.example.org test: hello world\n")
+
+	for i := 0; i < b.N; i++ {
+		b.SetBytes(int64(len(m)))
+		_, err := captainslog.NewSyslogMsgFromBytes(m)
+		if err == nil {
+			panic(err)
+		}
+	}
+}
+
+func BenchmarkParserParseInvaliSyslog(b *testing.B) {
+	m := []byte("Hello I am not a syslog message\n")
+
+	for i := 0; i < b.N; i++ {
+		b.SetBytes(int64(len(m)))
+		_, err := captainslog.NewSyslogMsgFromBytes(m)
+		if err == nil {
+			panic(err)
+		}
+	}
+}
