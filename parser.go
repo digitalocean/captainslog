@@ -311,20 +311,45 @@ func (p *Parser) parseTag() error {
 	}
 
 	p.tokenStart = p.cur
+	var hasPid bool
 
-	for p.buf[p.cur] != ':' && p.buf[p.cur] != ' ' {
+	for {
+		switch p.buf[p.cur] {
+		case ':':
+			p.cur++
+			p.tokenEnd = p.cur
+			goto FoundEndOfTag
+		case ' ':
+			p.tokenEnd = p.cur
+			goto FoundEndOfTag
+		case '[':
+			p.msg.Program = string(p.buf[p.tokenStart:p.cur])
+			p.cur++
+			if p.cur > p.bufEnd {
+				return ErrBadTag
+			}
+			pidStart := p.cur
+			p.tokenEnd = p.cur
+			for p.buf[p.cur] != ']' {
+				p.cur++
+				if p.cur > p.bufEnd {
+					return ErrBadTag
+				}
+			}
+			pidEnd := p.cur
+			p.msg.Pid = string(p.buf[pidStart:pidEnd])
+			hasPid = true
+		}
 		p.cur++
 		if p.cur > p.bufEnd {
 			return ErrBadTag
 		}
 	}
-
-	if p.buf[p.cur] == ':' {
-		p.cur++
-	}
-
-	p.tokenEnd = p.cur
+FoundEndOfTag:
 	p.msg.Tag = string(p.buf[p.tokenStart:p.tokenEnd])
+	if !hasPid {
+		p.msg.Program = p.msg.Tag
+	}
 	return err
 }
 

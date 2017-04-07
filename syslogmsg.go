@@ -15,7 +15,9 @@ type SyslogMsg struct {
 	Time                time.Time
 	Host                string
 	Tag                 string
+	Program             string
 	Cee                 string
+	Pid                 string
 	IsCee               bool
 	optionDontParseJSON bool
 	Content             string
@@ -120,7 +122,9 @@ func (s *SyslogMsg) JSON() ([]byte, error) {
 
 	content["syslog_time"] = s.Time
 	content["syslog_host"] = s.Host
-	content["syslog_program"] = s.Tag
+	content["syslog_tag"] = s.Tag
+	content["syslog_programname"] = s.Program
+	content["syslog_pid"] = s.Pid
 	content["syslog_facilitytext"] = s.Pri.Facility.String()
 	content["syslog_severitytext"] = s.Pri.Severity.String()
 
