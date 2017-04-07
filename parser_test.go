@@ -10,6 +10,92 @@ import (
 	"github.com/digitalocean/captainslog"
 )
 
+func TestNewParserWithPidAndParse(t *testing.T) {
+	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test[12]: hello world\n")
+	p := captainslog.NewParser()
+
+	msg, err := p.ParseBytes(b)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if want, got := captainslog.Local7, msg.Pri.Facility; want != got {
+		t.Errorf("want '%d', got '%d'", want, got)
+	}
+
+	if want, got := captainslog.Debug, msg.Pri.Severity; want != got {
+		t.Errorf("want '%d', got '%d'", want, got)
+	}
+
+	ts := msg.Time
+
+	if want, got := 2006, ts.Year(); want != got {
+		t.Errorf("want '%d', got '%d'", want, got)
+	}
+
+	if want, got := time.Month(1), ts.Month(); want != got {
+		t.Errorf("want '%d', got '%d'", want, got)
+	}
+
+	if want, got := 2, ts.Day(); want != got {
+		t.Errorf("want '%d', got '%d'", want, got)
+	}
+
+	if want, got := 15, ts.Hour(); want != got {
+		t.Errorf("want '%d', got '%d'", want, got)
+	}
+
+	if want, got := 4, ts.Minute(); want != got {
+		t.Errorf("want '%d', got '%d'", want, got)
+	}
+
+	if want, got := 5, ts.Second(); want != got {
+		t.Errorf("want '%d', got '%d'", want, got)
+	}
+
+	if want, got := 999999, ts.Nanosecond()/1000; want != got {
+		t.Errorf("want '%d', got '%d'", want, got)
+	}
+
+	_, zoneOffsetSecs := ts.Zone()
+	if want, got := -25200, zoneOffsetSecs; want != got {
+		t.Errorf("want '%d', got '%d'", want, got)
+	}
+
+	if want, got := "host.example.org", msg.Host; want != got {
+		t.Errorf("want '%s', got '%s'", want, got)
+	}
+
+	if want, got := "test", msg.Program; want != got {
+		t.Errorf("want %q, got %q", want, got)
+	}
+
+	if want, got := "test[12]:", msg.Tag; want != got {
+		t.Errorf("want '%s', got '%s'", want, got)
+	}
+
+	if want, got := "12", msg.Pid; want != got {
+		t.Errorf("want %q, got %q", want, got)
+	}
+
+	if want, got := false, msg.IsCee; want != got {
+		t.Errorf("want '%v', got '%v'", want, got)
+	}
+
+	if want, got := " hello world", msg.Content; want != got {
+		t.Errorf("want '%s', got '%s'", want, got)
+	}
+
+	if want, got := 0, bytes.Compare(b, msg.Bytes()); want != got {
+		t.Errorf("want '%v', got '%v'", want, got)
+	}
+
+	if want, got := string(b), msg.String(); want != got {
+		t.Errorf("want '%s', got '%s'", want, got)
+	}
+
+}
+
 func TestNewParserAndParse(t *testing.T) {
 	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: hello world\n")
 	p := captainslog.NewParser()
@@ -754,6 +840,20 @@ func TestFuzzFindings(t *testing.T) {
 	for _, fuzzData := range inputs {
 		testFuzzFindings(fuzzData, t)
 	}
+}
+
+func TestBadPids(t *testing.T) {
+	inputs := []string{
+		"<191>2006-01-02T15:04:05.999999-07:00 host.example.org test[1: hello world\n",
+		"<191>2006-01-02T15:04:05.999999-07:00 host.example.org test[1 hello world\n",
+		"<191>2006-01-02T15:04:05.999999-07:00 host.example.org test[\n",
+		"<191>2006-01-02T15:04:05.999999-07:00 host.example.org test[]\n",
+	}
+
+	for _, fuzzData := range inputs {
+		testFuzzFindings(fuzzData, t)
+	}
+
 }
 
 func BenchmarkParserParse(b *testing.B) {
