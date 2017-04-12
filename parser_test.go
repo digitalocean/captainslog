@@ -156,6 +156,10 @@ func TestNewParserAndParse(t *testing.T) {
 		t.Errorf("want '%s', got '%s'", want, got)
 	}
 
+	if want, got := "test", msg.Program; want != got {
+		t.Errorf("want '%s', got '%s'", want, got)
+	}
+
 	if want, got := false, msg.IsCee; want != got {
 		t.Errorf("want '%v', got '%v'", want, got)
 	}
@@ -273,6 +277,10 @@ func TestNewSyslogMsgFromBytes(t *testing.T) {
 		t.Errorf("want '%s', got '%s'", want, got)
 	}
 
+	if want, got := "test", msg.Program; want != got {
+		t.Errorf("want '%s', got '%s'", want, got)
+	}
+
 	if want, got := "test:", msg.Tag; want != got {
 		t.Errorf("want '%s', got '%s'", want, got)
 	}
@@ -348,6 +356,10 @@ func TestUnmarshalDateNoMicros(t *testing.T) {
 		t.Errorf("want '%s', got '%s'", want, got)
 	}
 
+	if want, got := "test", msg.Program; want != got {
+		t.Errorf("want '%s', got '%s'", want, got)
+	}
+
 	if want, got := "test:", msg.Tag; want != got {
 		t.Errorf("want '%s', got '%s'", want, got)
 	}
@@ -420,6 +432,10 @@ func TestUnmarshalDateNoMillis(t *testing.T) {
 	}
 
 	if want, got := "host.example.org", msg.Host; want != got {
+		t.Errorf("want '%s', got '%s'", want, got)
+	}
+
+	if want, got := "test", msg.Program; want != got {
 		t.Errorf("want '%s', got '%s'", want, got)
 	}
 
@@ -562,6 +578,10 @@ func TestUnmarshalTagEndHandling(t *testing.T) {
 		t.Error(err)
 	}
 
+	if want, got := "test", msg.Program; want != got {
+		t.Errorf("want '%s', got '%s'", want, got)
+	}
+
 	if want, got := "test:", msg.Tag; want != got {
 		t.Errorf("want '%s', got '%s'", want, got)
 	}
@@ -570,6 +590,10 @@ func TestUnmarshalTagEndHandling(t *testing.T) {
 	msg, err = captainslog.NewSyslogMsgFromBytes(b)
 	if err != nil {
 		t.Error(err)
+	}
+
+	if want, got := "test", msg.Program; want != got {
+		t.Errorf("want '%s', got '%s'", want, got)
 	}
 
 	if want, got := "test", msg.Tag; want != got {
@@ -822,6 +846,23 @@ func TestUnmarshalPriNotNumber(t *testing.T) {
 	}
 }
 
+func TestTagWithColonNoPid(t *testing.T) {
+	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: hello world\n")
+	p := captainslog.NewParser()
+
+	msg, err := p.ParseBytes(b)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if want, got := "test", msg.Program; want != got {
+		t.Errorf("want %q, got %q", want, got)
+	}
+	if want, got := "test:", msg.Tag; want != got {
+		t.Errorf("want %q, got %q", want, got)
+	}
+}
+
 func testFuzzFindings(fuzzData string, t *testing.T) {
 	b := []byte(fuzzData)
 	_, err := captainslog.NewSyslogMsgFromBytes(b)
@@ -853,7 +894,6 @@ func TestBadPids(t *testing.T) {
 	for _, fuzzData := range inputs {
 		testFuzzFindings(fuzzData, t)
 	}
-
 }
 
 func BenchmarkParserParse(b *testing.B) {
