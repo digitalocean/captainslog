@@ -312,12 +312,14 @@ func (p *Parser) parseTag() error {
 
 	p.tokenStart = p.cur
 	var hasPid bool
+	var hasColon bool
 
 	for {
 		switch p.buf[p.cur] {
 		case ':':
 			p.cur++
 			p.tokenEnd = p.cur
+			hasColon = true
 			goto FoundEndOfTag
 		case ' ':
 			p.tokenEnd = p.cur
@@ -348,7 +350,11 @@ func (p *Parser) parseTag() error {
 FoundEndOfTag:
 	p.msg.Tag = string(p.buf[p.tokenStart:p.tokenEnd])
 	if !hasPid {
-		p.msg.Program = p.msg.Tag
+		if !hasColon {
+			p.msg.Program = p.msg.Tag
+		} else {
+			p.msg.Program = string(p.buf[p.tokenStart : p.tokenEnd-1])
+		}
 	}
 	return err
 }
