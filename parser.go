@@ -110,11 +110,13 @@ func (p *Parser) ParseBytes(b []byte) (SyslogMsg, error) {
 }
 
 func (p *Parser) parse() error {
-	err := p.parsePri()
+	var err error
+	p.msg.Pri, p.cur, err = ParsePri(p.cur, p.buf)
 	if err != nil {
 		return err
 	}
-	err = p.parseTime()
+
+	p.msg.Time, p.msg.timeFormat, p.cur, err = ParseTime(p.cur, p.buf)
 	if err != nil {
 		return err
 	}
@@ -126,13 +128,13 @@ func (p *Parser) parse() error {
 		}
 		p.msg.Host = host
 	} else {
-		err = p.parseHost()
+		p.msg.Host, p.cur, err = ParseHost(p.cur, p.buf)
 		if err != nil {
 			return err
 		}
 	}
 
-	err = p.parseTag()
+	p.msg.Tag, p.msg.Program, p.msg.Pid, p.cur, err = ParseTag(p.cur, p.buf)
 	if err != nil {
 		return err
 	}
@@ -146,75 +148,75 @@ func (p *Parser) parse() error {
 	return err
 }
 
-func (p *Parser) parsePri() error {
+func ParsePri(cur int, buf []byte) (Priority, int, error) {
 	var err error
+	var pri Priority
 
-	if p.bufLen == 0 || (p.cur+priLen) > p.bufEnd {
-		return ErrBadPriority
+	if len(buf) == 0 || (cur+priLen) > len(buf)-1 {
+		return pri, cur, ErrBadPriority
 	}
 
-	if p.buf[p.cur] != priStart {
-		return ErrBadPriority
+	if buf[cur] != priStart {
+		return pri, cur, ErrBadPriority
 	}
 
-	p.cur++
-	p.tokenStart = p.cur
+	cur++
+	tokenStart := cur
 
-	if p.buf[p.cur] == priEnd {
-		return ErrBadPriority
+	if buf[cur] == priEnd {
+		return pri, cur, ErrBadPriority
 	}
 
-	for p.buf[p.cur] != priEnd {
-		if !(p.buf[p.cur] >= '0' && p.buf[p.cur] <= '9') {
-			return ErrBadPriority
+	for buf[cur] != priEnd {
+		if !(buf[cur] >= '0' && buf[cur] <= '9') {
+			return pri, cur, ErrBadPriority
 		}
 
-		p.cur++
+		cur++
 
-		if p.cur > (priLen - 1) {
-			return ErrBadPriority
+		if cur > (priLen - 1) {
+			return pri, cur, ErrBadPriority
 		}
 	}
 
-	p.tokenEnd = p.cur
-	pVal, _ := strconv.Atoi(string(p.buf[p.tokenStart:p.tokenEnd]))
+	pVal, _ := strconv.Atoi(string(buf[tokenStart:cur]))
 
-	p.msg.Pri = Priority{
+	pri = Priority{
 		Priority: pVal,
 		Facility: Facility(pVal / 8),
 		Severity: Severity(pVal % 8),
 	}
 
-	p.cur++
-	return err
+	cur++
+	return pri, cur, err
 }
 
-// checkForLikelyDateTime checks for a YYYY-MM-DD string. If one is found,
+// CheckForLikelyDateTime checks for a YYYY-MM-DD string. If one is found,
 // we use this to decide that trying to parse a full rsyslog style timestamp
 // is worth the cpu time.
-func checkForLikelyDateTime(b []byte) bool {
+func CheckForLikelyDateTime(buf []byte) bool {
 	for i := 0; i < yearLen; i++ {
-		if !unicode.IsDigit(rune(b[i])) {
+		if !unicode.IsDigit(rune(buf[i])) {
 			return false
 		}
 	}
 
-	if string(b[startMonth-1]) != datePartSep {
+	if string(buf[startMonth-1]) != datePartSep {
 		return false
 	}
 
 	for i := startMonth; i < startMonth+dayLen; i++ {
-		if !unicode.IsDigit(rune(b[i])) {
+		if !unicode.IsDigit(rune(buf[i])) {
 			return false
 		}
 	}
 
-	if string(b[startDay-1]) != datePartSep {
+	if string(buf[startDay-1]) != datePartSep {
 		return false
 	}
 
 	for i := startDay; i < startDay+dayLen; i++ {
-		if !unicode.IsDigit(rune(b[i])) {
+		if !unicode.IsDigit(rune(buf[i])) {
 			return false
 		}
 	}
@@ -222,51 +224,49 @@ func checkForLikelyDateTime(b []byte) bool {
 	return true
 }
 
-func (p *Parser) parseTime() error {
+func ParseTime(cur int, buf []byte) (time.Time, string, int, error) {
 	var err error
 	var foundTime bool
-
-	p.tokenStart = p.cur
+	var t time.Time
+	var tf string
 
 	// no timestamp format is shorter than YYYY-MM-DD, so if buffer is shorter
 	// than this it is safe to assume we don't have a valid datetime.
-	if p.cur+dateStampLen > p.bufEnd {
-		return ErrBadTime
+	if cur+dateStampLen > len(buf)-1 {
+		return t, tf, cur, ErrBadTime
 	}
 
-	if checkForLikelyDateTime(p.buf[p.cur : p.cur+dateStampLen]) {
-		tokenStart := p.cur
-		tokenEnd := p.cur
+	if CheckForLikelyDateTime(buf[cur : cur+dateStampLen]) {
+		tokenStart := cur
+		tokenEnd := cur
 
-		for p.buf[tokenEnd] != ' ' {
+		for buf[tokenEnd] != ' ' {
 			tokenEnd++
-			if tokenEnd > p.bufEnd {
-				return ErrBadTime
+			if tokenEnd > len(buf)-1 {
+				return t, tf, cur, ErrBadTime
 			}
 		}
 
-		timeStr := string(p.buf[tokenStart:tokenEnd])
-		p.msg.Time, err = time.Parse(rsyslogTimeFormat, timeStr)
+		timeStr := string(buf[tokenStart:tokenEnd])
+		t, err = time.Parse(rsyslogTimeFormat, timeStr)
 		if err == nil {
-			p.cur = tokenEnd
-			p.tokenEnd = p.cur
-			p.msg.timeFormat = rsyslogTimeFormat
+			cur = tokenEnd
+			tf = rsyslogTimeFormat
 		}
-		return err
+		return t, tf, cur, err
 	}
 
 	for _, timeFormat := range timeFormats {
 		tLen := len(timeFormat)
-		if p.cur+tLen > p.bufEnd {
+		if cur+tLen > len(buf) {
 			continue
 		}
 
-		timeStr := string(p.buf[p.cur : p.cur+tLen])
-		p.msg.Time, err = time.Parse(timeFormat, timeStr)
+		timeStr := string(buf[cur : cur+tLen])
+		t, err = time.Parse(timeFormat, timeStr)
 		if err == nil {
-			p.cur = p.cur + tLen
-			p.tokenEnd = p.cur
-			p.msg.timeFormat = timeFormat
+			cur = cur + tLen
+			tf = timeFormat
 			foundTime = true
 			break
 		}
@@ -274,89 +274,93 @@ func (p *Parser) parseTime() error {
 	if !foundTime {
 		err = ErrBadTime
 	}
-	return err
+	return t, tf, cur, err
 }
 
-func (p *Parser) parseHost() error {
+func ParseHost(cur int, buf []byte) (string, int, error) {
 	var err error
-	for p.buf[p.cur] == ' ' {
-		p.cur++
-		if p.cur > p.bufEnd {
-			return ErrBadHost
+	var host string
+
+	for buf[cur] == ' ' {
+		cur++
+		if cur > len(buf)-1 {
+			return host, cur, ErrBadHost
 		}
 	}
 
-	p.tokenStart = p.cur
+	tokenStart := cur
 
-	for p.buf[p.cur] != ' ' {
-		p.cur++
-		if p.cur > p.bufEnd {
-			return ErrBadHost
+	for buf[cur] != ' ' {
+		cur++
+		if cur > len(buf)-1 {
+			return host, cur, ErrBadHost
 		}
 	}
 
-	p.tokenEnd = p.cur
-	p.msg.Host = string(p.buf[p.tokenStart:p.tokenEnd])
-	return err
+	host = string(buf[tokenStart:cur])
+	return host, cur, err
 }
 
-func (p *Parser) parseTag() error {
+func ParseTag(cur int, buf []byte) (string, string, string, int, error) {
 	var err error
-
-	for p.buf[p.cur] == ' ' {
-		p.cur++
-		if p.cur > p.bufEnd {
-			return ErrBadTag
-		}
-	}
-
-	p.tokenStart = p.cur
 	var hasPid bool
 	var hasColon bool
+	var program string
+	var pid string
+	var tag string
+	var tokenEnd int
 
+	for buf[cur] == ' ' {
+		cur++
+		if cur > len(buf)-1 {
+			return tag, program, pid, cur, ErrBadTag
+		}
+	}
+
+	tokenStart := cur
 	for {
-		switch p.buf[p.cur] {
+		switch buf[cur] {
 		case ':':
-			p.cur++
-			p.tokenEnd = p.cur
+			cur++
+			tokenEnd = cur
 			hasColon = true
 			goto FoundEndOfTag
 		case ' ':
-			p.tokenEnd = p.cur
+			tokenEnd = cur
 			goto FoundEndOfTag
 		case '[':
-			p.msg.Program = string(p.buf[p.tokenStart:p.cur])
-			p.cur++
-			if p.cur > p.bufEnd {
-				return ErrBadTag
+			program = string(buf[tokenStart:cur])
+			cur++
+			if cur > len(buf)-1 {
+				return tag, program, pid, cur, ErrBadTag
 			}
-			pidStart := p.cur
-			p.tokenEnd = p.cur
-			for p.buf[p.cur] != ']' {
-				p.cur++
-				if p.cur > p.bufEnd {
-					return ErrBadTag
+			pidStart := cur
+			tokenEnd = cur
+			for buf[cur] != ']' {
+				cur++
+				if cur > len(buf)-1 {
+					return tag, program, pid, cur, ErrBadTag
 				}
 			}
-			pidEnd := p.cur
-			p.msg.Pid = string(p.buf[pidStart:pidEnd])
+			pidEnd := cur
+			pid = string(buf[pidStart:pidEnd])
 			hasPid = true
 		}
-		p.cur++
-		if p.cur > p.bufEnd {
-			return ErrBadTag
+		cur++
+		if cur > len(buf)-1 {
+			return tag, program, pid, cur, ErrBadTag
 		}
 	}
 FoundEndOfTag:
-	p.msg.Tag = string(p.buf[p.tokenStart:p.tokenEnd])
+	tag = string(buf[tokenStart:tokenEnd])
 	if !hasPid {
 		if !hasColon {
-			p.msg.Program = p.msg.Tag
+			program = tag
 		} else {
-			p.msg.Program = string(p.buf[p.tokenStart : p.tokenEnd-1])
+			program = string(buf[tokenStart : tokenEnd-1])
 		}
 	}
-	return err
+	return tag, program, pid, cur, err
 }
 
 func (p *Parser) parseCee() error {
