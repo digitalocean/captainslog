@@ -116,10 +116,14 @@ func (p *Parser) parse() error {
 		return err
 	}
 
-	p.msg.Time, p.msg.timeFormat, p.cur, err = ParseTime(p.cur, p.buf)
+	var msgTime Time
+	msgTime, p.cur, err = ParseTime(p.cur, p.buf)
 	if err != nil {
 		return err
 	}
+
+	p.msg.Time = msgTime.Time
+	p.msg.timeFormat = msgTime.TimeFormat
 
 	if p.optionNoHostname {
 		host, err := os.Hostname()
@@ -134,17 +138,35 @@ func (p *Parser) parse() error {
 		}
 	}
 
-	p.msg.Tag, p.msg.Program, p.msg.Pid, p.cur, err = ParseTag(p.cur, p.buf)
+	var msgTag Tag
+	msgTag, p.cur, err = ParseTag(p.cur, p.buf)
+	if err != nil {
+		return err
+	}
+	p.msg.Tag = msgTag.Tag
+	p.msg.Program = msgTag.Program
+	p.msg.Pid = msgTag.Pid
+
+	var cee string
+	cee, p.cur, err = ParseCEE(p.cur, p.buf)
 	if err != nil {
 		return err
 	}
 
-	err = p.parseCee()
-	if err != nil {
-		return err
+	if cee != "" {
+		p.msg.Cee = cee
+		p.msg.IsCee = true
 	}
 
-	err = p.parseContent()
+	parseJSON := true
+	if p.optionDontParseJSON {
+		parseJSON = false
+	}
+
+	var content Content
+	content, p.cur, err = ParseContent(p.cur, p.requireTerminator, p.msg.IsCee, parseJSON, p.buf)
+	p.msg.Content = content.Content
+	p.msg.JSONValues = content.JSONValues
 	return err
 }
 
@@ -224,16 +246,15 @@ func CheckForLikelyDateTime(buf []byte) bool {
 	return true
 }
 
-func ParseTime(cur int, buf []byte) (time.Time, string, int, error) {
+func ParseTime(cur int, buf []byte) (Time, int, error) {
 	var err error
 	var foundTime bool
-	var t time.Time
-	var tf string
+	var msgTime Time
 
 	// no timestamp format is shorter than YYYY-MM-DD, so if buffer is shorter
 	// than this it is safe to assume we don't have a valid datetime.
 	if cur+dateStampLen > len(buf)-1 {
-		return t, tf, cur, ErrBadTime
+		return msgTime, cur, ErrBadTime
 	}
 
 	if CheckForLikelyDateTime(buf[cur : cur+dateStampLen]) {
@@ -243,17 +264,17 @@ func ParseTime(cur int, buf []byte) (time.Time, string, int, error) {
 		for buf[tokenEnd] != ' ' {
 			tokenEnd++
 			if tokenEnd > len(buf)-1 {
-				return t, tf, cur, ErrBadTime
+				return msgTime, cur, ErrBadTime
 			}
 		}
 
 		timeStr := string(buf[tokenStart:tokenEnd])
-		t, err = time.Parse(rsyslogTimeFormat, timeStr)
+		msgTime.Time, err = time.Parse(rsyslogTimeFormat, timeStr)
 		if err == nil {
 			cur = tokenEnd
-			tf = rsyslogTimeFormat
+			msgTime.TimeFormat = rsyslogTimeFormat
 		}
-		return t, tf, cur, err
+		return msgTime, cur, err
 	}
 
 	for _, timeFormat := range timeFormats {
@@ -263,10 +284,10 @@ func ParseTime(cur int, buf []byte) (time.Time, string, int, error) {
 		}
 
 		timeStr := string(buf[cur : cur+tLen])
-		t, err = time.Parse(timeFormat, timeStr)
+		msgTime.Time, err = time.Parse(timeFormat, timeStr)
 		if err == nil {
 			cur = cur + tLen
-			tf = timeFormat
+			msgTime.TimeFormat = timeFormat
 			foundTime = true
 			break
 		}
@@ -274,7 +295,7 @@ func ParseTime(cur int, buf []byte) (time.Time, string, int, error) {
 	if !foundTime {
 		err = ErrBadTime
 	}
-	return t, tf, cur, err
+	return msgTime, cur, err
 }
 
 func ParseHost(cur int, buf []byte) (string, int, error) {
@@ -301,19 +322,17 @@ func ParseHost(cur int, buf []byte) (string, int, error) {
 	return host, cur, err
 }
 
-func ParseTag(cur int, buf []byte) (string, string, string, int, error) {
+func ParseTag(cur int, buf []byte) (Tag, int, error) {
 	var err error
 	var hasPid bool
 	var hasColon bool
-	var program string
-	var pid string
-	var tag string
+	var tag Tag
 	var tokenEnd int
 
 	for buf[cur] == ' ' {
 		cur++
 		if cur > len(buf)-1 {
-			return tag, program, pid, cur, ErrBadTag
+			return tag, cur, ErrBadTag
 		}
 	}
 
@@ -329,121 +348,118 @@ func ParseTag(cur int, buf []byte) (string, string, string, int, error) {
 			tokenEnd = cur
 			goto FoundEndOfTag
 		case '[':
-			program = string(buf[tokenStart:cur])
+			tag.Program = string(buf[tokenStart:cur])
 			cur++
 			if cur > len(buf)-1 {
-				return tag, program, pid, cur, ErrBadTag
+				return tag, cur, ErrBadTag
 			}
 			pidStart := cur
 			tokenEnd = cur
 			for buf[cur] != ']' {
 				cur++
 				if cur > len(buf)-1 {
-					return tag, program, pid, cur, ErrBadTag
+					return tag, cur, ErrBadTag
 				}
 			}
 			pidEnd := cur
-			pid = string(buf[pidStart:pidEnd])
+			tag.Pid = string(buf[pidStart:pidEnd])
 			hasPid = true
 		}
 		cur++
 		if cur > len(buf)-1 {
-			return tag, program, pid, cur, ErrBadTag
+			return tag, cur, ErrBadTag
 		}
 	}
 FoundEndOfTag:
-	tag = string(buf[tokenStart:tokenEnd])
+	tag.Tag = string(buf[tokenStart:tokenEnd])
 	if !hasPid {
 		if !hasColon {
-			program = tag
+			tag.Program = tag.Tag
 		} else {
-			program = string(buf[tokenStart : tokenEnd-1])
+			tag.Program = string(buf[tokenStart : tokenEnd-1])
 		}
 	}
-	return tag, program, pid, cur, err
+	return tag, cur, err
 }
 
-func (p *Parser) parseCee() error {
-	if p.cur >= len(p.buf)-1 {
-		return ErrBadContent
-	}
-
-	p.tokenStart = p.cur
-	cur := p.cur
-
-	for p.buf[cur] == ' ' {
-		cur++
-		if cur >= len(p.buf)-1 {
-			return nil
-		}
-	}
-
-	if cur+4 > p.bufEnd {
-		return nil
-	}
-
-	if p.buf[cur] != '@' {
-		return nil
-	}
-
-	cur++
-	if p.buf[cur] != 'c' {
-		return nil
-	}
-
-	cur++
-	if p.buf[cur] != 'e' {
-		return nil
-	}
-
-	cur++
-	if p.buf[cur] != 'e' {
-		return nil
-	}
-
-	cur++
-	if p.buf[cur] != ':' {
-		return nil
-	}
-
-	cur++
-	p.cur = cur
-
-	p.tokenEnd = cur
-	p.msg.IsCee = true
-	p.msg.Cee = string(p.buf[p.tokenStart:p.tokenEnd])
-
-	return nil
-}
-
-func (p *Parser) parseContent() error {
-	if p.cur >= len(p.buf)-1 {
-		return ErrBadContent
-	}
-
+func ParseCEE(cur int, buf []byte) (string, int, error) {
 	var err error
-	p.tokenStart = p.cur
+	var cee string
 
-	for p.buf[p.cur] != '\n' {
-		p.cur++
-		if p.cur > p.bufEnd {
-			if p.requireTerminator {
-				return ErrBadContent
+	if cur >= len(buf)-1 {
+		return cee, cur, err
+	}
+
+	tokenStart := cur
+	tokenEnd := cur
+
+	for buf[tokenEnd] == ' ' {
+		tokenEnd++
+		if tokenEnd >= len(buf)-1 {
+			return cee, cur, err
+		}
+	}
+
+	if tokenEnd+4 > len(buf)-1 {
+		return cee, cur, err
+	}
+
+	if buf[tokenEnd] != '@' {
+		return cee, cur, err
+	}
+
+	tokenEnd++
+	if buf[tokenEnd] != 'c' {
+		return cee, cur, err
+	}
+
+	tokenEnd++
+	if buf[tokenEnd] != 'e' {
+		return cee, cur, err
+	}
+
+	tokenEnd++
+	if buf[tokenEnd] != 'e' {
+		return cee, cur, err
+	}
+
+	tokenEnd++
+	if buf[tokenEnd] != ':' {
+		return cee, cur, err
+	}
+
+	tokenEnd++
+	cur = tokenEnd
+	cee = string(buf[tokenStart:tokenEnd])
+	return cee, cur, err
+}
+
+func ParseContent(cur int, requireTerminator bool, isCee bool, parseJSON bool, buf []byte) (Content, int, error) {
+	content := Content{JSONValues: make(map[string]interface{}, 0)}
+	var err error
+	tokenStart := cur
+
+	if cur >= len(buf)-1 {
+		return content, cur, ErrBadContent
+	}
+
+	for buf[cur] != '\n' {
+		cur++
+		if cur > len(buf)-1 {
+			if requireTerminator {
+				return content, cur, ErrBadContent
 			}
 			goto exitContentSearch
 		}
 	}
 exitContentSearch:
-	p.tokenEnd = p.cur
+	tokenEnd := cur
 
-	if p.msg.IsCee && !p.optionDontParseJSON {
-		decoder := json.NewDecoder(bytes.NewBuffer(p.buf[p.tokenStart:p.tokenEnd]))
+	if parseJSON && isCee {
+		decoder := json.NewDecoder(bytes.NewBuffer(buf[tokenStart:tokenEnd]))
 		decoder.UseNumber()
-		err = decoder.Decode(&p.msg.JSONValues)
-		if err != nil {
-			p.msg.IsCee = false
-		}
+		decoder.Decode(&content.JSONValues)
 	}
-	p.msg.Content = string(p.buf[p.tokenStart:p.tokenEnd])
-	return err
+	content.Content = string(buf[tokenStart:tokenEnd])
+	return content, cur, err
 }

@@ -26,6 +26,31 @@ type SyslogMsg struct {
 	mutex               *sync.Mutex
 }
 
+// SyslogMsgContent holds the Content of a syslog message,
+// including the Content as a string, and a struct of
+// the JSONValues of appropriate.
+type Content struct {
+	Content    string
+	JSONValues map[string]interface{}
+}
+
+// Time holds both the time derviced from a
+// syslog message along with the time format string
+// used to parse it.
+type Time struct {
+	Time       time.Time
+	TimeFormat string
+}
+
+// Tag holds the data derviced from a
+// syslog message's tag, including the full
+// tag, the program name and the pid.
+type Tag struct {
+	Tag     string
+	Program string
+	Pid     string
+}
+
 // NewSyslogMsg creates a new empty SyslogMsg.
 func NewSyslogMsg() SyslogMsg {
 	return SyslogMsg{
