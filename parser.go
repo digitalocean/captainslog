@@ -111,13 +111,13 @@ func (p *Parser) ParseBytes(b []byte) (SyslogMsg, error) {
 
 func (p *Parser) parse() error {
 	var err error
-	p.msg.Pri, p.cur, err = ParsePri(p.cur, p.buf)
+	p.cur, p.msg.Pri, err = ParsePri(p.cur, p.buf)
 	if err != nil {
 		return err
 	}
 
 	var msgTime Time
-	msgTime, p.cur, err = ParseTime(p.cur, p.buf)
+	p.cur, msgTime, err = ParseTime(p.cur, p.buf)
 	if err != nil {
 		return err
 	}
@@ -132,14 +132,14 @@ func (p *Parser) parse() error {
 		}
 		p.msg.Host = host
 	} else {
-		p.msg.Host, p.cur, err = ParseHost(p.cur, p.buf)
+		p.cur, p.msg.Host, err = ParseHost(p.cur, p.buf)
 		if err != nil {
 			return err
 		}
 	}
 
 	var msgTag Tag
-	msgTag, p.cur, err = ParseTag(p.cur, p.buf)
+	p.cur, msgTag, err = ParseTag(p.cur, p.buf)
 	if err != nil {
 		return err
 	}
@@ -148,7 +148,7 @@ func (p *Parser) parse() error {
 	p.msg.Pid = msgTag.Pid
 
 	var cee string
-	cee, p.cur, err = ParseCEE(p.cur, p.buf)
+	p.cur, cee, err = ParseCEE(p.cur, p.buf)
 	if err != nil {
 		return err
 	}
@@ -164,40 +164,40 @@ func (p *Parser) parse() error {
 	}
 
 	var content Content
-	content, p.cur, err = ParseContent(p.cur, p.requireTerminator, p.msg.IsCee, parseJSON, p.buf)
+	p.cur, content, err = ParseContent(p.cur, p.requireTerminator, p.msg.IsCee, parseJSON, p.buf)
 	p.msg.Content = content.Content
 	p.msg.JSONValues = content.JSONValues
 	return err
 }
 
-func ParsePri(cur int, buf []byte) (Priority, int, error) {
+func ParsePri(cur int, buf []byte) (int, Priority, error) {
 	var err error
 	var pri Priority
 
 	if len(buf) == 0 || (cur+priLen) > len(buf)-1 {
-		return pri, cur, ErrBadPriority
+		return cur, pri, ErrBadPriority
 	}
 
 	if buf[cur] != priStart {
-		return pri, cur, ErrBadPriority
+		return cur, pri, ErrBadPriority
 	}
 
 	cur++
 	tokenStart := cur
 
 	if buf[cur] == priEnd {
-		return pri, cur, ErrBadPriority
+		return cur, pri, ErrBadPriority
 	}
 
 	for buf[cur] != priEnd {
 		if !(buf[cur] >= '0' && buf[cur] <= '9') {
-			return pri, cur, ErrBadPriority
+			return cur, pri, ErrBadPriority
 		}
 
 		cur++
 
 		if cur > (priLen - 1) {
-			return pri, cur, ErrBadPriority
+			return cur, pri, ErrBadPriority
 		}
 	}
 
@@ -210,7 +210,7 @@ func ParsePri(cur int, buf []byte) (Priority, int, error) {
 	}
 
 	cur++
-	return pri, cur, err
+	return cur, pri, err
 }
 
 // CheckForLikelyDateTime checks for a YYYY-MM-DD string. If one is found,
@@ -246,7 +246,7 @@ func CheckForLikelyDateTime(buf []byte) bool {
 	return true
 }
 
-func ParseTime(cur int, buf []byte) (Time, int, error) {
+func ParseTime(cur int, buf []byte) (int, Time, error) {
 	var err error
 	var foundTime bool
 	var msgTime Time
@@ -254,7 +254,7 @@ func ParseTime(cur int, buf []byte) (Time, int, error) {
 	// no timestamp format is shorter than YYYY-MM-DD, so if buffer is shorter
 	// than this it is safe to assume we don't have a valid datetime.
 	if cur+dateStampLen > len(buf)-1 {
-		return msgTime, cur, ErrBadTime
+		return cur, msgTime, ErrBadTime
 	}
 
 	if CheckForLikelyDateTime(buf[cur : cur+dateStampLen]) {
@@ -264,7 +264,7 @@ func ParseTime(cur int, buf []byte) (Time, int, error) {
 		for buf[tokenEnd] != ' ' {
 			tokenEnd++
 			if tokenEnd > len(buf)-1 {
-				return msgTime, cur, ErrBadTime
+				return cur, msgTime, ErrBadTime
 			}
 		}
 
@@ -274,7 +274,7 @@ func ParseTime(cur int, buf []byte) (Time, int, error) {
 			cur = tokenEnd
 			msgTime.TimeFormat = rsyslogTimeFormat
 		}
-		return msgTime, cur, err
+		return cur, msgTime, err
 	}
 
 	for _, timeFormat := range timeFormats {
@@ -295,17 +295,17 @@ func ParseTime(cur int, buf []byte) (Time, int, error) {
 	if !foundTime {
 		err = ErrBadTime
 	}
-	return msgTime, cur, err
+	return cur, msgTime, err
 }
 
-func ParseHost(cur int, buf []byte) (string, int, error) {
+func ParseHost(cur int, buf []byte) (int, string, error) {
 	var err error
 	var host string
 
 	for buf[cur] == ' ' {
 		cur++
 		if cur > len(buf)-1 {
-			return host, cur, ErrBadHost
+			return cur, host, ErrBadHost
 		}
 	}
 
@@ -314,15 +314,15 @@ func ParseHost(cur int, buf []byte) (string, int, error) {
 	for buf[cur] != ' ' {
 		cur++
 		if cur > len(buf)-1 {
-			return host, cur, ErrBadHost
+			return cur, host, ErrBadHost
 		}
 	}
 
 	host = string(buf[tokenStart:cur])
-	return host, cur, err
+	return cur, host, err
 }
 
-func ParseTag(cur int, buf []byte) (Tag, int, error) {
+func ParseTag(cur int, buf []byte) (int, Tag, error) {
 	var err error
 	var hasPid bool
 	var hasColon bool
@@ -332,7 +332,7 @@ func ParseTag(cur int, buf []byte) (Tag, int, error) {
 	for buf[cur] == ' ' {
 		cur++
 		if cur > len(buf)-1 {
-			return tag, cur, ErrBadTag
+			return cur, tag, ErrBadTag
 		}
 	}
 
@@ -351,14 +351,14 @@ func ParseTag(cur int, buf []byte) (Tag, int, error) {
 			tag.Program = string(buf[tokenStart:cur])
 			cur++
 			if cur > len(buf)-1 {
-				return tag, cur, ErrBadTag
+				return cur, tag, ErrBadTag
 			}
 			pidStart := cur
 			tokenEnd = cur
 			for buf[cur] != ']' {
 				cur++
 				if cur > len(buf)-1 {
-					return tag, cur, ErrBadTag
+					return cur, tag, ErrBadTag
 				}
 			}
 			pidEnd := cur
@@ -367,7 +367,7 @@ func ParseTag(cur int, buf []byte) (Tag, int, error) {
 		}
 		cur++
 		if cur > len(buf)-1 {
-			return tag, cur, ErrBadTag
+			return cur, tag, ErrBadTag
 		}
 	}
 FoundEndOfTag:
@@ -379,15 +379,15 @@ FoundEndOfTag:
 			tag.Program = string(buf[tokenStart : tokenEnd-1])
 		}
 	}
-	return tag, cur, err
+	return cur, tag, err
 }
 
-func ParseCEE(cur int, buf []byte) (string, int, error) {
+func ParseCEE(cur int, buf []byte) (int, string, error) {
 	var err error
 	var cee string
 
 	if cur >= len(buf)-1 {
-		return cee, cur, err
+		return cur, cee, err
 	}
 
 	tokenStart := cur
@@ -396,58 +396,58 @@ func ParseCEE(cur int, buf []byte) (string, int, error) {
 	for buf[tokenEnd] == ' ' {
 		tokenEnd++
 		if tokenEnd >= len(buf)-1 {
-			return cee, cur, err
+			return cur, cee, err
 		}
 	}
 
 	if tokenEnd+4 > len(buf)-1 {
-		return cee, cur, err
+		return cur, cee, err
 	}
 
 	if buf[tokenEnd] != '@' {
-		return cee, cur, err
+		return cur, cee, err
 	}
 
 	tokenEnd++
 	if buf[tokenEnd] != 'c' {
-		return cee, cur, err
+		return cur, cee, err
 	}
 
 	tokenEnd++
 	if buf[tokenEnd] != 'e' {
-		return cee, cur, err
+		return cur, cee, err
 	}
 
 	tokenEnd++
 	if buf[tokenEnd] != 'e' {
-		return cee, cur, err
+		return cur, cee, err
 	}
 
 	tokenEnd++
 	if buf[tokenEnd] != ':' {
-		return cee, cur, err
+		return cur, cee, err
 	}
 
 	tokenEnd++
 	cur = tokenEnd
 	cee = string(buf[tokenStart:tokenEnd])
-	return cee, cur, err
+	return cur, cee, err
 }
 
-func ParseContent(cur int, requireTerminator bool, isCee bool, parseJSON bool, buf []byte) (Content, int, error) {
+func ParseContent(cur int, requireTerminator bool, isCee bool, parseJSON bool, buf []byte) (int, Content, error) {
 	content := Content{JSONValues: make(map[string]interface{}, 0)}
 	var err error
 	tokenStart := cur
 
 	if cur >= len(buf)-1 {
-		return content, cur, ErrBadContent
+		return cur, content, ErrBadContent
 	}
 
 	for buf[cur] != '\n' {
 		cur++
 		if cur > len(buf)-1 {
 			if requireTerminator {
-				return content, cur, ErrBadContent
+				return cur, content, ErrBadContent
 			}
 			goto exitContentSearch
 		}
@@ -461,5 +461,5 @@ exitContentSearch:
 		decoder.Decode(&content.JSONValues)
 	}
 	content.Content = string(buf[tokenStart:tokenEnd])
-	return content, cur, err
+	return cur, content, err
 }
