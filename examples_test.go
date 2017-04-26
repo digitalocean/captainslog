@@ -13,6 +13,6 @@ func ExampleNewSyslogMsgFromBytes() {
 	}
 
 	fmt.Printf("Syslog message was from host %q", msg.Host)
-	// Output: Syslog message was from host 'host.example.org'
+	// Output: Syslog message was from host "host.example.org"
 
 }
