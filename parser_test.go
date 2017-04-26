@@ -63,7 +63,7 @@ func TestNewParserWithPidAndParse(t *testing.T) {
 	}
 
 	if want, got := "host.example.org", msg.Host; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf("want %q, got %q", want, got)
 	}
 
 	if want, got := "test", msg.Program; want != got {
@@ -71,7 +71,7 @@ func TestNewParserWithPidAndParse(t *testing.T) {
 	}
 
 	if want, got := "test[12]:", msg.Tag; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf("want %q, got %q", want, got)
 	}
 
 	if want, got := "12", msg.Pid; want != got {
@@ -83,7 +83,7 @@ func TestNewParserWithPidAndParse(t *testing.T) {
 	}
 
 	if want, got := " hello world", msg.Content; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf("want %q, got %q", want, got)
 	}
 
 	if want, got := 0, bytes.Compare(b, msg.Bytes()); want != got {
@@ -91,7 +91,7 @@ func TestNewParserWithPidAndParse(t *testing.T) {
 	}
 
 	if want, got := string(b), msg.String(); want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf("want %q, got %q", want, got)
 	}
 
 }
@@ -149,15 +149,15 @@ func TestNewParserAndParse(t *testing.T) {
 	}
 
 	if want, got := "host.example.org", msg.Host; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf("want %q, got %q", want, got)
 	}
 
 	if want, got := "test:", msg.Tag; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf("want %q, got %q", want, got)
 	}
 
 	if want, got := "test", msg.Program; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf("want %q, got %q", want, got)
 	}
 
 	if want, got := false, msg.IsCee; want != got {
@@ -165,7 +165,7 @@ func TestNewParserAndParse(t *testing.T) {
 	}
 
 	if want, got := " hello world", msg.Content; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf("want %q, got %q", want, got)
 	}
 
 	if want, got := 0, bytes.Compare(b, msg.Bytes()); want != got {
@@ -173,7 +173,7 @@ func TestNewParserAndParse(t *testing.T) {
 	}
 
 	if want, got := string(b), msg.String(); want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf("want %q, got %q", want, got)
 	}
 
 }
@@ -193,7 +193,7 @@ func TestParserOptionNoHostname(t *testing.T) {
 	}
 
 	if want, got := host, msg.Host; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf("want %q, got %q", want, got)
 	}
 }
 
@@ -211,15 +211,15 @@ func TestParseOptionDontParseJSON(t *testing.T) {
 	}
 
 	if want, got := " @cee:", msg.Cee; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf("want %q, got %q", want, got)
 	}
 
 	if want, got := "{\"a\":\"b\"}", msg.Content; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf("want %q, got %q", want, got)
 	}
 
 	if want, got := string(b), msg.String(); want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf("want %q, got %q", want, got)
 	}
 }
 
@@ -274,15 +274,15 @@ func TestNewSyslogMsgFromBytes(t *testing.T) {
 	}
 
 	if want, got := "host.example.org", msg.Host; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf("want %q, got %q", want, got)
 	}
 
 	if want, got := "test", msg.Program; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf("want %q, got %q", want, got)
 	}
 
 	if want, got := "test:", msg.Tag; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf("want %q, got %q", want, got)
 	}
 
 	if want, got := false, msg.IsCee; want != got {
@@ -290,7 +290,7 @@ func TestNewSyslogMsgFromBytes(t *testing.T) {
 	}
 
 	if want, got := " hello world", msg.Content; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf("want %q, got %q", want, got)
 	}
 
 	if want, got := 0, bytes.Compare(b, msg.Bytes()); want != got {
@@ -298,7 +298,7 @@ func TestNewSyslogMsgFromBytes(t *testing.T) {
 	}
 
 	if want, got := string(b), msg.String(); want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf("want %q, got %q", want, got)
 	}
 }
 
@@ -353,15 +353,15 @@ func TestUnmarshalDateNoMicros(t *testing.T) {
 	}
 
 	if want, got := "host.example.org", msg.Host; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf("want %q, got %q", want, got)
 	}
 
 	if want, got := "test", msg.Program; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf("want %q, got %q", want, got)
 	}
 
 	if want, got := "test:", msg.Tag; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf("want %q, got %q", want, got)
 	}
 
 	if want, got := false, msg.IsCee; want != got {
@@ -369,7 +369,7 @@ func TestUnmarshalDateNoMicros(t *testing.T) {
 	}
 
 	if want, got := " hello world", msg.Content; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf("want %q, got %q", want, got)
 	}
 
 	if want, got := 0, bytes.Compare(b, msg.Bytes()); want != got {
@@ -377,7 +377,7 @@ func TestUnmarshalDateNoMicros(t *testing.T) {
 	}
 
 	if want, got := string(b), msg.String(); want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf("want %q, got %q", want, got)
 	}
 }
 
@@ -432,15 +432,15 @@ func TestUnmarshalDateNoMillis(t *testing.T) {
 	}
 
 	if want, got := "host.example.org", msg.Host; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf("want %q, got %q", want, got)
 	}
 
 	if want, got := "test", msg.Program; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf("want %q, got %q", want, got)
 	}
 
 	if want, got := "test:", msg.Tag; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf("want %q, got %q", want, got)
 	}
 
 	if want, got := false, msg.IsCee; want != got {
@@ -448,7 +448,7 @@ func TestUnmarshalDateNoMillis(t *testing.T) {
 	}
 
 	if want, got := " hello world", msg.Content; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf("want %q, got %q", want, got)
 	}
 
 	if want, got := 0, bytes.Compare(b, msg.Bytes()); want != got {
@@ -456,7 +456,7 @@ func TestUnmarshalDateNoMillis(t *testing.T) {
 	}
 
 	if want, got := string(b), msg.String(); want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf("want %q, got %q", want, got)
 	}
 }
 
@@ -472,15 +472,15 @@ func TestUnmarshalCeeSpace(t *testing.T) {
 	}
 
 	if want, got := " @cee:", msg.Cee; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf("want %q, got %q", want, got)
 	}
 
 	if want, got := "{\"a\":\"b\"}", msg.Content; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf("want %q, got %q", want, got)
 	}
 
 	if want, got := string(b), msg.String(); want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf("want %q, got %q", want, got)
 	}
 }
 
@@ -496,11 +496,11 @@ func TestUnmarshalCeeNoSpace(t *testing.T) {
 	}
 
 	if want, got := "@cee:", msg.Cee; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf("want %q, got %q", want, got)
 	}
 
 	if want, got := string(b), msg.String(); want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf("want %q, got %q", want, got)
 	}
 }
 
@@ -516,11 +516,11 @@ func TestUnmarshalCeeEarlyBufferBeforeColon(t *testing.T) {
 	}
 
 	if want, got := "", msg.Cee; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf("want %q, got %q", want, got)
 	}
 
 	if want, got := "@cee", msg.Content; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf("want %q, got %q", want, got)
 	}
 }
 
@@ -579,11 +579,11 @@ func TestUnmarshalTagEndHandling(t *testing.T) {
 	}
 
 	if want, got := "test", msg.Program; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf("want %q, got %q", want, got)
 	}
 
 	if want, got := "test:", msg.Tag; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf("want %q, got %q", want, got)
 	}
 
 	b = []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test hello world\n")
@@ -593,15 +593,15 @@ func TestUnmarshalTagEndHandling(t *testing.T) {
 	}
 
 	if want, got := "test", msg.Program; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf("want %q, got %q", want, got)
 	}
 
 	if want, got := "test", msg.Tag; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf("want %q, got %q", want, got)
 	}
 
 	if want, got := string(b), msg.String(); want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf("want %q, got %q", want, got)
 	}
 }
 
@@ -677,7 +677,7 @@ func TestUnmarshalTimeANSIC(t *testing.T) {
 	}
 
 	if want, got := string(b), msg.String(); want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf("want %q, got %q", want, got)
 	}
 }
 
@@ -712,7 +712,7 @@ func TestUnmarshalTimeUnixDate(t *testing.T) {
 
 	zone, _ := ts.Zone()
 	if want, got := "MST", zone; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf("want %q, got %q", want, got)
 	}
 }
 
@@ -751,7 +751,7 @@ func TestUnmarshalNoPriority(t *testing.T) {
 	_, err := captainslog.NewSyslogMsgFromBytes(b)
 
 	if want, got := captainslog.ErrBadPriority, err; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf("want %q, got %q", want, got)
 	}
 }
 
@@ -760,7 +760,7 @@ func TestUnmarshalNoPriorityEnd(t *testing.T) {
 	_, err := captainslog.NewSyslogMsgFromBytes(b)
 
 	if want, got := captainslog.ErrBadPriority, err; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf("want %q, got %q", want, got)
 	}
 }
 
@@ -769,7 +769,7 @@ func TestUnmarshalPriorityTooLong(t *testing.T) {
 	_, err := captainslog.NewSyslogMsgFromBytes(b)
 
 	if want, got := captainslog.ErrBadPriority, err; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf("want %q, got %q", want, got)
 	}
 }
 
@@ -778,7 +778,7 @@ func TestUnmarshalPriorityTruncated(t *testing.T) {
 	_, err := captainslog.NewSyslogMsgFromBytes(b)
 
 	if want, got := captainslog.ErrBadPriority, err; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf("want %q, got %q", want, got)
 	}
 }
 
@@ -787,7 +787,7 @@ func TestUnmarshalDateTruncated(t *testing.T) {
 	_, err := captainslog.NewSyslogMsgFromBytes(b)
 
 	if want, got := captainslog.ErrBadTime, err; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf("want %q, got %q", want, got)
 	}
 }
 
@@ -796,7 +796,7 @@ func TestUnmarshalHostTruncated(t *testing.T) {
 	_, err := captainslog.NewSyslogMsgFromBytes(b)
 
 	if want, got := captainslog.ErrBadHost, err; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf("want %q, got %q", want, got)
 	}
 }
 
@@ -805,7 +805,7 @@ func TestUnmarshalNoHost(t *testing.T) {
 	_, err := captainslog.NewSyslogMsgFromBytes(b)
 
 	if want, got := captainslog.ErrBadHost, err; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf("want %q, got %q", want, got)
 	}
 }
 
@@ -814,7 +814,7 @@ func TestUnmarshalTagTruncated(t *testing.T) {
 	_, err := captainslog.NewSyslogMsgFromBytes(b)
 
 	if want, got := captainslog.ErrBadTag, err; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf("want %q, got %q", want, got)
 	}
 }
 
@@ -823,7 +823,7 @@ func TestUnmarshalNoTag(t *testing.T) {
 	_, err := captainslog.NewSyslogMsgFromBytes(b)
 
 	if want, got := captainslog.ErrBadTag, err; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf("want %q, got %q", want, got)
 	}
 }
 
@@ -842,7 +842,7 @@ func TestUnmarshalPriNotNumber(t *testing.T) {
 	_, err := captainslog.NewSyslogMsgFromBytes(b)
 
 	if want, got := captainslog.ErrBadPriority, err; want != got {
-		t.Errorf("want '%s', got '%s'", want, got)
+		t.Errorf("want %q, got %q", want, got)
 	}
 }
 

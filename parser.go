@@ -92,7 +92,7 @@ func OptionDontParseJSON(p *Parser) {
 	p.optionDontParseJSON = true
 }
 
-// ParseBytes accepts a []byte and tries to parse it into a SyslogMsg
+// ParseBytes accepts a []byte and tries to parse it into a SyslogMsg.
 func (p *Parser) ParseBytes(b []byte) (SyslogMsg, error) {
 	p.buf = b
 	p.bufLen = len(b)
@@ -110,14 +110,24 @@ func (p *Parser) ParseBytes(b []byte) (SyslogMsg, error) {
 }
 
 func (p *Parser) parse() error {
-	err := p.parsePri()
+	var err error
+	var offset int
+
+	offset, p.msg.Pri, err = ParsePri(p.buf)
 	if err != nil {
 		return err
 	}
-	err = p.parseTime()
+	p.cur = p.cur + offset
+
+	var msgTime Time
+	offset, msgTime, err = ParseTime(p.buf[p.cur:])
 	if err != nil {
 		return err
 	}
+	p.cur = p.cur + offset
+
+	p.msg.Time = msgTime.Time
+	p.msg.timeFormat = msgTime.TimeFormat
 
 	if p.optionNoHostname {
 		host, err := os.Hostname()
@@ -126,95 +136,125 @@ func (p *Parser) parse() error {
 		}
 		p.msg.Host = host
 	} else {
-		err = p.parseHost()
+		offset, p.msg.Host, err = ParseHost(p.buf[p.cur:])
 		if err != nil {
 			return err
 		}
+		p.cur = p.cur + offset
 	}
 
-	err = p.parseTag()
+	var msgTag Tag
+	offset, msgTag, err = ParseTag(p.buf[p.cur:])
 	if err != nil {
 		return err
 	}
+	p.cur = p.cur + offset
+	p.msg.Tag = msgTag.Tag
+	p.msg.Program = msgTag.Program
+	p.msg.Pid = msgTag.Pid
 
-	err = p.parseCee()
+	var cee string
+	offset, cee, err = ParseCEE(p.buf[p.cur:])
 	if err != nil {
 		return err
 	}
+	p.cur = p.cur + offset
 
-	err = p.parseContent()
+	if cee != "" {
+		p.msg.Cee = cee
+		p.msg.IsCee = true
+	}
+
+	copts := make([]func(*contentOpts), 0)
+	if !p.optionDontParseJSON && p.msg.IsCee {
+		copts = append(copts, ContentOptionParseJSON)
+	}
+
+	if p.requireTerminator {
+		copts = append(copts, ContentOptionRequireTerminator)
+	}
+
+	var content Content
+	offset, content, err = ParseContent(p.buf[p.cur:], copts...)
+	p.msg.Content = content.Content
+	p.msg.JSONValues = content.JSONValues
 	return err
 }
 
-func (p *Parser) parsePri() error {
+// ParsePri will try to find a syslog priority at the
+// beginning of the passed in []byte. It will return the offset
+// from the start of the []byte to the end of the priority string,
+// a captainslog.Priority, and an error.
+func ParsePri(buf []byte) (int, Priority, error) {
 	var err error
+	var pri Priority
+	var offset int
 
-	if p.bufLen == 0 || (p.cur+priLen) > p.bufEnd {
-		return ErrBadPriority
+	if len(buf) == 0 || (offset+priLen) > len(buf)-1 {
+		return offset, pri, ErrBadPriority
 	}
 
-	if p.buf[p.cur] != priStart {
-		return ErrBadPriority
+	if buf[offset] != priStart {
+		return offset, pri, ErrBadPriority
 	}
 
-	p.cur++
-	p.tokenStart = p.cur
+	offset++
+	tokenStart := offset
 
-	if p.buf[p.cur] == priEnd {
-		return ErrBadPriority
+	if buf[offset] == priEnd {
+		return offset, pri, ErrBadPriority
 	}
 
-	for p.buf[p.cur] != priEnd {
-		if !(p.buf[p.cur] >= '0' && p.buf[p.cur] <= '9') {
-			return ErrBadPriority
+	for buf[offset] != priEnd {
+		if !(buf[offset] >= '0' && buf[offset] <= '9') {
+			return offset, pri, ErrBadPriority
 		}
 
-		p.cur++
+		offset++
 
-		if p.cur > (priLen - 1) {
-			return ErrBadPriority
+		if offset > (priLen - 1) {
+			return offset, pri, ErrBadPriority
 		}
 	}
 
-	p.tokenEnd = p.cur
-	pVal, _ := strconv.Atoi(string(p.buf[p.tokenStart:p.tokenEnd]))
+	pVal, _ := strconv.Atoi(string(buf[tokenStart:offset]))
 
-	p.msg.Pri = Priority{
+	pri = Priority{
 		Priority: pVal,
 		Facility: Facility(pVal / 8),
 		Severity: Severity(pVal % 8),
 	}
 
-	p.cur++
-	return err
+	offset++
+	return offset, pri, err
 }
 
-// checkForLikelyDateTime checks for a YYYY-MM-DD string. If one is found,
+// CheckForLikelyDateTime checks for a YYYY-MM-DD string. If one is found,
 // we use this to decide that trying to parse a full rsyslog style timestamp
 // is worth the cpu time.
-func checkForLikelyDateTime(b []byte) bool {
+func CheckForLikelyDateTime(buf []byte) bool {
 	for i := 0; i < yearLen; i++ {
-		if !unicode.IsDigit(rune(b[i])) {
+		if !unicode.IsDigit(rune(buf[i])) {
 			return false
 		}
 	}
 
-	if string(b[startMonth-1]) != datePartSep {
+	if string(buf[startMonth-1]) != datePartSep {
 		return false
 	}
 
 	for i := startMonth; i < startMonth+dayLen; i++ {
-		if !unicode.IsDigit(rune(b[i])) {
+		if !unicode.IsDigit(rune(buf[i])) {
 			return false
 		}
 	}
 
-	if string(b[startDay-1]) != datePartSep {
+	if string(buf[startDay-1]) != datePartSep {
 		return false
 	}
 
 	for i := startDay; i < startDay+dayLen; i++ {
-		if !unicode.IsDigit(rune(b[i])) {
+		if !unicode.IsDigit(rune(buf[i])) {
 			return false
 		}
 	}
@@ -222,51 +262,52 @@ func checkForLikelyDateTime(b []byte) bool {
 	return true
 }
 
-func (p *Parser) parseTime() error {
+// ParseTime will try to find a syslog time at the beginning of the
+// passed in []byte. It returns the offset from the start of the []byte
+// to the end of the time string, a captainslog.Time, and an error.
+func ParseTime(buf []byte) (int, Time, error) {
 	var err error
 	var foundTime bool
-
-	p.tokenStart = p.cur
+	var msgTime Time
+	var offset int
 
 	// no timestamp format is shorter than YYYY-MM-DD, so if buffer is shorter
 	// than this it is safe to assume we don't have a valid datetime.
-	if p.cur+dateStampLen > p.bufEnd {
-		return ErrBadTime
+	if offset+dateStampLen > len(buf)-1 {
+		return offset, msgTime, ErrBadTime
 	}
 
-	if checkForLikelyDateTime(p.buf[p.cur : p.cur+dateStampLen]) {
-		tokenStart := p.cur
-		tokenEnd := p.cur
+	if CheckForLikelyDateTime(buf[offset : offset+dateStampLen]) {
+		tokenStart := offset
+		tokenEnd := offset
 
-		for p.buf[tokenEnd] != ' ' {
+		for buf[tokenEnd] != ' ' {
 			tokenEnd++
-			if tokenEnd > p.bufEnd {
-				return ErrBadTime
+			if tokenEnd > len(buf)-1 {
+				return offset, msgTime, ErrBadTime
 			}
 		}
 
-		timeStr := string(p.buf[tokenStart:tokenEnd])
-		p.msg.Time, err = time.Parse(rsyslogTimeFormat, timeStr)
+		timeStr := string(buf[tokenStart:tokenEnd])
+		msgTime.Time, err = time.Parse(rsyslogTimeFormat, timeStr)
 		if err == nil {
-			p.cur = tokenEnd
-			p.tokenEnd = p.cur
-			p.msg.timeFormat = rsyslogTimeFormat
+			offset = tokenEnd
+			msgTime.TimeFormat = rsyslogTimeFormat
 		}
-		return err
+		return offset, msgTime, err
 	}
 
 	for _, timeFormat := range timeFormats {
 		tLen := len(timeFormat)
-		if p.cur+tLen > p.bufEnd {
+		if offset+tLen > len(buf) {
 			continue
 		}
 
-		timeStr := string(p.buf[p.cur : p.cur+tLen])
-		p.msg.Time, err = time.Parse(timeFormat, timeStr)
+		timeStr := string(buf[offset : offset+tLen])
+		msgTime.Time, err = time.Parse(timeFormat, timeStr)
 		if err == nil {
-			p.cur = p.cur + tLen
-			p.tokenEnd = p.cur
-			p.msg.timeFormat = timeFormat
+			offset = offset + tLen
+			msgTime.TimeFormat = timeFormat
 			foundTime = true
 			break
 		}
@@ -274,172 +315,214 @@ func (p *Parser) parseTime() error {
 	if !foundTime {
 		err = ErrBadTime
 	}
-	return err
+	return offset, msgTime, err
 }
 
-func (p *Parser) parseHost() error {
+// ParseHost will try to find a host at the
+// beginning of the passed in []byte. It will return the offset
+// from the start of the []byte to the end of the host string,
+// a captainslog.Priority, and an error.
+func ParseHost(buf []byte) (int, string, error) {
 	var err error
-	for p.buf[p.cur] == ' ' {
-		p.cur++
-		if p.cur > p.bufEnd {
-			return ErrBadHost
+	var host string
+	var offset int
+
+	for buf[offset] == ' ' {
+		offset++
+		if offset > len(buf)-1 {
+			return offset, host, ErrBadHost
 		}
 	}
 
-	p.tokenStart = p.cur
+	tokenStart := offset
 
-	for p.buf[p.cur] != ' ' {
-		p.cur++
-		if p.cur > p.bufEnd {
-			return ErrBadHost
+	for buf[offset] != ' ' {
+		offset++
+		if offset > len(buf)-1 {
+			return offset, host, ErrBadHost
 		}
 	}
 
-	p.tokenEnd = p.cur
-	p.msg.Host = string(p.buf[p.tokenStart:p.tokenEnd])
-	return err
+	host = string(buf[tokenStart:offset])
+	return offset, host, err
 }
 
-func (p *Parser) parseTag() error {
+// ParseTag will try to find a syslog tag at the beginning of the
+// passed in []byte. It returns the offset from the start of the []byte
+// to the end of the tag string, a captainslog.Tag, and an error.
+func ParseTag(buf []byte) (int, Tag, error) {
 	var err error
-
-	for p.buf[p.cur] == ' ' {
-		p.cur++
-		if p.cur > p.bufEnd {
-			return ErrBadTag
-		}
-	}
-
-	p.tokenStart = p.cur
 	var hasPid bool
 	var hasColon bool
+	var tag Tag
+	var tokenEnd int
+	var offset int
 
+	for buf[offset] == ' ' {
+		offset++
+		if offset > len(buf)-1 {
+			return offset, tag, ErrBadTag
+		}
+	}
+
+	tokenStart := offset
 	for {
-		switch p.buf[p.cur] {
+		switch buf[offset] {
 		case ':':
-			p.cur++
-			p.tokenEnd = p.cur
+			offset++
+			tokenEnd = offset
 			hasColon = true
 			goto FoundEndOfTag
 		case ' ':
-			p.tokenEnd = p.cur
+			tokenEnd = offset
 			goto FoundEndOfTag
 		case '[':
-			p.msg.Program = string(p.buf[p.tokenStart:p.cur])
-			p.cur++
-			if p.cur > p.bufEnd {
-				return ErrBadTag
+			tag.Program = string(buf[tokenStart:offset])
+			offset++
+			if offset > len(buf)-1 {
+				return offset, tag, ErrBadTag
 			}
-			pidStart := p.cur
-			p.tokenEnd = p.cur
-			for p.buf[p.cur] != ']' {
-				p.cur++
-				if p.cur > p.bufEnd {
-					return ErrBadTag
+			pidStart := offset
+			tokenEnd = offset
+			for buf[offset] != ']' {
+				offset++
+				if offset > len(buf)-1 {
+					return offset, tag, ErrBadTag
 				}
 			}
-			pidEnd := p.cur
-			p.msg.Pid = string(p.buf[pidStart:pidEnd])
+			pidEnd := offset
+			tag.Pid = string(buf[pidStart:pidEnd])
 			hasPid = true
 		}
-		p.cur++
-		if p.cur > p.bufEnd {
-			return ErrBadTag
+		offset++
+		if offset > len(buf)-1 {
+			return offset, tag, ErrBadTag
 		}
 	}
+
 FoundEndOfTag:
-	p.msg.Tag = string(p.buf[p.tokenStart:p.tokenEnd])
+	tag.Tag = string(buf[tokenStart:tokenEnd])
 	if !hasPid {
 		if !hasColon {
-			p.msg.Program = p.msg.Tag
+			tag.Program = tag.Tag
 		} else {
-			p.msg.Program = string(p.buf[p.tokenStart : p.tokenEnd-1])
+			tag.Program = string(buf[tokenStart : tokenEnd-1])
 		}
 	}
-	return err
+	return offset, tag, err
 }
 
-func (p *Parser) parseCee() error {
-	if p.cur >= len(p.buf)-1 {
-		return ErrBadContent
-	}
-
-	p.tokenStart = p.cur
-	cur := p.cur
-
-	for p.buf[cur] == ' ' {
-		cur++
-		if cur >= len(p.buf)-1 {
-			return nil
-		}
-	}
-
-	if cur+4 > p.bufEnd {
-		return nil
-	}
-
-	if p.buf[cur] != '@' {
-		return nil
-	}
-
-	cur++
-	if p.buf[cur] != 'c' {
-		return nil
-	}
-
-	cur++
-	if p.buf[cur] != 'e' {
-		return nil
-	}
-
-	cur++
-	if p.buf[cur] != 'e' {
-		return nil
-	}
-
-	cur++
-	if p.buf[cur] != ':' {
-		return nil
-	}
-
-	cur++
-	p.cur = cur
-
-	p.tokenEnd = cur
-	p.msg.IsCee = true
-	p.msg.Cee = string(p.buf[p.tokenStart:p.tokenEnd])
-
-	return nil
-}
-
-func (p *Parser) parseContent() error {
-	if p.cur >= len(p.buf)-1 {
-		return ErrBadContent
-	}
-
+// ParseCEE will try to find a syslog cee cookie  at the beginning of the
+// passed in []byte. It returns the offset from the start of the []byte
+// to the end of the cee string, the string, and an error.
+func ParseCEE(buf []byte) (int, string, error) {
 	var err error
-	p.tokenStart = p.cur
+	var cee string
+	var offset int
 
-	for p.buf[p.cur] != '\n' {
-		p.cur++
-		if p.cur > p.bufEnd {
-			if p.requireTerminator {
-				return ErrBadContent
+	if offset >= len(buf)-1 {
+		return offset, cee, err
+	}
+
+	tokenStart := offset
+	tokenEnd := offset
+
+	for buf[tokenEnd] == ' ' {
+		tokenEnd++
+		if tokenEnd >= len(buf)-1 {
+			return offset, cee, err
+		}
+	}
+
+	if tokenEnd+4 > len(buf)-1 {
+		return offset, cee, err
+	}
+
+	if buf[tokenEnd] != '@' {
+		return offset, cee, err
+	}
+
+	tokenEnd++
+	if buf[tokenEnd] != 'c' {
+		return offset, cee, err
+	}
+
+	tokenEnd++
+	if buf[tokenEnd] != 'e' {
+		return offset, cee, err
+	}
+
+	tokenEnd++
+	if buf[tokenEnd] != 'e' {
+		return offset, cee, err
+	}
+
+	tokenEnd++
+	if buf[tokenEnd] != ':' {
+		return offset, cee, err
+	}
+
+	tokenEnd++
+	offset = tokenEnd
+	cee = string(buf[tokenStart:tokenEnd])
+	return offset, cee, err
+}
+
+type contentOpts struct {
+	requireTerminator bool
+	parseJSON         bool
+}
+
+// ContentOptionRequireTerminator sets ParseContent to require a \n terminator
+func ContentOptionRequireTerminator(opts *contentOpts) {
+	opts.requireTerminator = true
+}
+
+// ContentOptionParseJSON will treat the content as a CEE message
+func ContentOptionParseJSON(opts *contentOpts) {
+	opts.parseJSON = true
+}
+
+// ParseContent will try to find syslog content at the beginning of the
+// passed in []byte. It returns the offset from the start of the []byte
+// to the end of the content, a captainslog.Content, and an error. It
+// accepts two options:
+//
+// ContentOptionRequireTerminator: if true, if the syslog message does not
+//		contain a '\n' terminator it will be treated as invalid.
+//
+// ContentOptionParseJSON: if true, it will treat the content field of the
+//		syslog message as a CEE message and parse the JSON.
+func ParseContent(buf []byte, options ...func(*contentOpts)) (int, Content, error) {
+	var o contentOpts
+	for _, option := range options {
+		option(&o)
+	}
+
+	content := Content{JSONValues: make(map[string]interface{}, 0)}
+	var err error
+	var offset int
+
+	if offset >= len(buf)-1 {
+		return offset, content, ErrBadContent
+	}
+
+	tokenStart := offset
+	for buf[offset] != '\n' {
+		offset++
+		if offset > len(buf)-1 {
+			if o.requireTerminator {
+				return offset, content, ErrBadContent
 			}
-			goto exitContentSearch
+			break
 		}
 	}
-exitContentSearch:
-	p.tokenEnd = p.cur
 
-	if p.msg.IsCee && !p.optionDontParseJSON {
-		decoder := json.NewDecoder(bytes.NewBuffer(p.buf[p.tokenStart:p.tokenEnd]))
+	if o.parseJSON {
+		decoder := json.NewDecoder(bytes.NewBuffer(buf[tokenStart:offset]))
 		decoder.UseNumber()
-		err = decoder.Decode(&p.msg.JSONValues)
-		if err != nil {
-			p.msg.IsCee = false
-		}
+		decoder.Decode(&content.JSONValues)
 	}
-	p.msg.Content = string(p.buf[p.tokenStart:p.tokenEnd])
-	return err
+	content.Content = string(buf[tokenStart:offset])
+	return offset, content, err
 }
