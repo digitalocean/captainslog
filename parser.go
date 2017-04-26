@@ -175,7 +175,7 @@ func (p *Parser) parse() error {
 	}
 
 	var content Content
-	offset, content, err = ParseContent(p.buf[p.cur:], copts...)
+	_, content, err = ParseContent(p.buf[p.cur:], copts...)
 	p.msg.Content = content.Content
 	p.msg.JSONValues = content.JSONValues
 	return err
