@@ -26,11 +26,10 @@ type SyslogMsg struct {
 	mutex               *sync.Mutex
 }
 
-// SyslogMsgContent holds the Content of a syslog message,
+// Content holds the Content of a syslog message,
 // including the Content as a string, and a struct of
 // the JSONValues of appropriate.
 type Content struct {
-	TokenEnd   int
 	Content    string
 	JSONValues map[string]interface{}
 }
@@ -39,7 +38,6 @@ type Content struct {
 // syslog message along with the time format string
 // used to parse it.
 type Time struct {
-	TokenEnd   int
 	Time       time.Time
 	TimeFormat string
 }
@@ -48,10 +46,9 @@ type Time struct {
 // syslog message's tag, including the full
 // tag, the program name and the pid.
 type Tag struct {
-	TokenEnd int
-	Tag      string
-	Program  string
-	Pid      string
+	Tag     string
+	Program string
+	Pid     string
 }
 
 // NewSyslogMsg creates a new empty SyslogMsg.
