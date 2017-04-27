@@ -25,8 +25,6 @@ type SyslogMsg struct {
 	JSONValues          map[string]interface{}
 	errored             bool
 	buf                 []byte
-	bufLen              int
-	bufEnd              int
 	mutex               *sync.Mutex
 }
 
