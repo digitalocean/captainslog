@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/digitalocean/captainslog"
-	"github.com/prometheus/client_golang/prometheus"
 )
 
 func TestSextant(t *testing.T) {
@@ -25,7 +24,8 @@ func TestSextant(t *testing.T) {
 
 func BenchmarkSextant(b *testing.B) {
 	s, err := captainslog.NewSextant("bench")
-	defer close(s.Quit)
+	defer s.Stop()
+	s.Start()
 
 	if err != nil {
 		panic(err)
@@ -40,11 +40,5 @@ func BenchmarkSextant(b *testing.B) {
 		}
 		s.Update(&msg)
 	}
-
-	prometheus.Unregister(s.BytesTotal)
-	prometheus.Unregister(s.LogLinesTotal)
-	prometheus.Unregister(s.ParseErrorTotal)
-	prometheus.Unregister(s.JSONLogsTotal)
-	prometheus.Unregister(s.UniqueKeysTotal)
 
 }
