@@ -55,9 +55,6 @@ var (
 type Parser struct {
 	tokenStart          int
 	tokenEnd            int
-	buf                 []byte
-	bufLen              int
-	bufEnd              int
 	cur                 int
 	requireTerminator   bool
 	optionNoHostname    bool
@@ -94,13 +91,14 @@ func OptionDontParseJSON(p *Parser) {
 
 // ParseBytes accepts a []byte and tries to parse it into a SyslogMsg.
 func (p *Parser) ParseBytes(b []byte) (SyslogMsg, error) {
-	p.buf = b
-	p.bufLen = len(b)
-	p.bufEnd = len(b) - 1
 	p.cur = 0
+
 	msg := NewSyslogMsg()
 	msg.optionDontParseJSON = p.optionDontParseJSON
+	msg.buf = b
+
 	p.msg = &msg
+	p.msg.buf = b
 
 	err := p.parse()
 	if p.msg.Time.Year() == 0 {
@@ -113,15 +111,17 @@ func (p *Parser) parse() error {
 	var err error
 	var offset int
 
-	offset, p.msg.Pri, err = ParsePri(p.buf)
+	offset, p.msg.Pri, err = ParsePri(p.msg.buf)
 	if err != nil {
+		p.msg.errored = true
 		return err
 	}
 	p.cur = p.cur + offset
 
 	var msgTime Time
-	offset, msgTime, err = ParseTime(p.buf[p.cur:])
+	offset, msgTime, err = ParseTime(p.msg.buf[p.cur:])
 	if err != nil {
+		p.msg.errored = true
 		return err
 	}
 	p.cur = p.cur + offset
@@ -132,20 +132,23 @@ func (p *Parser) parse() error {
 	if p.optionNoHostname {
 		host, err := os.Hostname()
 		if err != nil {
+			p.msg.errored = true
 			return ErrBadHost
 		}
 		p.msg.Host = host
 	} else {
-		offset, p.msg.Host, err = ParseHost(p.buf[p.cur:])
+		offset, p.msg.Host, err = ParseHost(p.msg.buf[p.cur:])
 		if err != nil {
+			p.msg.errored = true
 			return err
 		}
 		p.cur = p.cur + offset
 	}
 
 	var msgTag Tag
-	offset, msgTag, err = ParseTag(p.buf[p.cur:])
+	offset, msgTag, err = ParseTag(p.msg.buf[p.cur:])
 	if err != nil {
+		p.msg.errored = true
 		return err
 	}
 	p.cur = p.cur + offset
@@ -154,8 +157,9 @@ func (p *Parser) parse() error {
 	p.msg.Pid = msgTag.Pid
 
 	var cee string
-	offset, cee, err = ParseCEE(p.buf[p.cur:])
+	offset, cee, err = ParseCEE(p.msg.buf[p.cur:])
 	if err != nil {
+		p.msg.errored = true
 		return err
 	}
 	p.cur = p.cur + offset
@@ -175,7 +179,7 @@ func (p *Parser) parse() error {
 	}
 
 	var content Content
-	_, content, err = ParseContent(p.buf[p.cur:], copts...)
+	_, content, err = ParseContent(p.msg.buf[p.cur:], copts...)
 	p.msg.Content = content.Content
 	p.msg.JSONValues = content.JSONValues
 	return err
