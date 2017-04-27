@@ -15,5 +15,5 @@ install:
 
 script:
   - $HOME/gopath/bin/golint .
-  - go test -cpu=2 -race -v ./...
-  - go test -cpu=2 -covermode=atomic ./...
+  - go test -cpu=2 -race -v .
+  - go test -cpu=2 -covermode=atomic .

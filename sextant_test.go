@@ -7,7 +7,7 @@ import (
 )
 
 func TestSextant(t *testing.T) {
-	s := captainslog.NewSextant()
+	s := captainslog.NewSextant("test")
 
 	input := []byte("<4>2016-03-08T14:59:36.293816+00:00 host.example.com kernel[12]: test\n")
 	msg, err := captainslog.NewSyslogMsgFromBytes(input)
@@ -15,5 +15,5 @@ func TestSextant(t *testing.T) {
 		t.Error(err)
 	}
 
-	s.Update(msg)
+	s.Update(&msg)
 }
