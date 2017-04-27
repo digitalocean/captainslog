@@ -1,39 +1,66 @@
 package captainslog
 
-import "github.com/prometheus/client_golang/prometheus"
+import (
+	"sync"
+	"time"
+
+	"github.com/mynameisfiber/gohll"
+	"github.com/prometheus/client_golang/prometheus"
+)
 
 type Sextant struct {
-	logLinesTotal   prometheus.Counter
-	bytesTotal      prometheus.Counter
-	parseErrorTotal prometheus.Counter
-	jsonLogsTotal   prometheus.Counter
+	LogLinesTotal   prometheus.Counter
+	BytesTotal      prometheus.Counter
+	ParseErrorTotal prometheus.Counter
+	JSONLogsTotal   prometheus.Counter
+	UniqueKeysTotal prometheus.Counter
+	keysHLL         *gohll.HLL
+	mutex           *sync.Mutex
+	previousKeys    float64
+	Quit            chan struct{}
+	ticker          *time.Ticker
 }
 
 func (s *Sextant) register() {
-	prometheus.MustRegister(s.bytesTotal)
-	prometheus.MustRegister(s.logLinesTotal)
-	prometheus.MustRegister(s.parseErrorTotal)
-	prometheus.MustRegister(s.jsonLogsTotal)
+	prometheus.MustRegister(s.BytesTotal)
+	prometheus.MustRegister(s.LogLinesTotal)
+	prometheus.MustRegister(s.ParseErrorTotal)
+	prometheus.MustRegister(s.JSONLogsTotal)
+	prometheus.MustRegister(s.UniqueKeysTotal)
 }
 
 func (s *Sextant) Update(msg *SyslogMsg) {
-	s.bytesTotal.Add(float64(len(msg.buf)))
-	s.logLinesTotal.Inc()
+	s.mutex.Lock()
+	s.BytesTotal.Add(float64(len(msg.buf)))
+	s.LogLinesTotal.Inc()
 
 	if msg.errored {
-		s.parseErrorTotal.Inc()
+		s.ParseErrorTotal.Inc()
 	}
 
 	if msg.IsCee {
-		s.jsonLogsTotal.Inc()
+		s.JSONLogsTotal.Inc()
 	}
+
+	for k, _ := range msg.JSONValues {
+		s.keysHLL.AddWithHasher(k, gohll.MMH3Hash)
+	}
+	s.mutex.Unlock()
 }
 
-func NewSextant(namespace string) *Sextant {
+func (s *Sextant) updatePrometheus() {
+	s.mutex.Lock()
+	keys := s.keysHLL.Cardinality() - s.previousKeys
+	s.UniqueKeysTotal.Add(keys)
+	s.previousKeys = keys
+	s.mutex.Unlock()
+}
+
+func NewSextant(namespace string) (*Sextant, error) {
 
 	sextant := &Sextant{
 
-		bytesTotal: prometheus.NewCounter(
+		BytesTotal: prometheus.NewCounter(
 			prometheus.CounterOpts{
 				Namespace: namespace,
 				Name:      "bytes_total",
@@ -41,7 +68,7 @@ func NewSextant(namespace string) *Sextant {
 			},
 		),
 
-		logLinesTotal: prometheus.NewCounter(
+		LogLinesTotal: prometheus.NewCounter(
 			prometheus.CounterOpts{
 				Namespace: namespace,
 				Name:      "log_lines_total",
@@ -49,7 +76,7 @@ func NewSextant(namespace string) *Sextant {
 			},
 		),
 
-		parseErrorTotal: prometheus.NewCounter(
+		ParseErrorTotal: prometheus.NewCounter(
 			prometheus.CounterOpts{
 				Namespace: namespace,
 				Name:      "parse_errors_total",
@@ -57,15 +84,43 @@ func NewSextant(namespace string) *Sextant {
 			},
 		),
 
-		jsonLogsTotal: prometheus.NewCounter(
+		JSONLogsTotal: prometheus.NewCounter(
 			prometheus.CounterOpts{
 				Namespace: namespace,
 				Name:      "json_logs_total",
 				Help:      "total logs that were json",
 			},
 		),
+
+		UniqueKeysTotal: prometheus.NewCounter(
+			prometheus.CounterOpts{
+				Namespace: namespace,
+				Name:      "unique_keys_total",
+				Help:      "unique JSON keys",
+			},
+		),
+
+		mutex:        &sync.Mutex{},
+		previousKeys: 0,
+		Quit:         make(chan struct{}),
+		ticker:       time.NewTicker(5 * time.Second),
 	}
 
 	sextant.register()
-	return sextant
+
+	var err error
+	sextant.keysHLL, err = gohll.NewHLLByError(0.05)
+
+	go func() {
+		for {
+			select {
+			case <-sextant.ticker.C:
+				sextant.updatePrometheus()
+			case <-sextant.Quit:
+				sextant.ticker.Stop()
+				return
+			}
+		}
+	}()
+	return sextant, err
 }
