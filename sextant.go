@@ -15,13 +15,13 @@ import (
 
 // Sextant tracks metrics derviced from logs.
 type Sextant struct {
-	msgChan   chan []byte
-	hllChan   <-chan *gohll.HLL
-	estimator *Estimator
-	workers   []*worker
-	stats     *Stats
-	ticker    *time.Ticker
-	quitChan  chan struct{}
+	msgChan       chan []byte
+	estimator     *Estimator
+	estimatorChan chan *Estimator
+	workers       []*worker
+	stats         *Stats
+	ticker        *time.Ticker
+	quitChan      chan struct{}
 }
 
 // NewSextant returns a new Sextant.
@@ -29,13 +29,13 @@ func NewSextant(namespace string, errorRate float64, numWorkers int) (*Sextant, 
 	hllChan := make(chan *gohll.HLL)
 
 	s := &Sextant{
-		msgChan:   make(chan []byte),
-		hllChan:   hllChan,
-		estimator: &Estimator{},
-		workers:   make([]*worker, numWorkers),
-		stats:     NewStats(namespace),
-		ticker:    time.NewTicker(5 * time.Second),
-		quitChan:  make(chan struct{}),
+		msgChan:       make(chan []byte),
+		estimator:     &Estimator{},
+		estimatorChan: make(chan *Estimator),
+		workers:       make([]*worker, numWorkers),
+		stats:         NewStats(namespace),
+		ticker:        time.NewTicker(5 * time.Second),
+		quitChan:      make(chan struct{}),
 	}
 
 	var err error
@@ -57,6 +57,8 @@ func NewSextant(namespace string, errorRate float64, numWorkers int) (*Sextant, 
 		var signal struct{}
 		for {
 			select {
+			case e := <-s.estimatorChan:
+				s.estimator.Union(e)
 			case <-s.ticker.C:
 				for _, w := range s.workers {
 					w.snapChan <- signal
@@ -84,14 +86,13 @@ func (s *Sextant) Stop() {
 }
 
 type worker struct {
-	stats            *Stats
-	estimator        *Estimator
-	mutex            *sync.Mutex
-	previousKeys     float64
-	previousPrograms float64
-	snapChan         chan struct{}
-	msgChan          <-chan []byte
-	hllChan          chan<- *gohll.HLL
+	stats        *Stats
+	estimator    *Estimator
+	mutex        *sync.Mutex
+	previousKeys float64
+	snapChan     chan struct{}
+	msgChan      <-chan []byte
+	hllChan      chan<- *gohll.HLL
 }
 
 func newWorker(stats *Stats, msgChan chan []byte, hllChan chan *gohll.HLL, errorRate float64) (*worker, error) {
@@ -146,24 +147,14 @@ func (w *worker) update(msg *SyslogMsg) {
 		w.stats.JSONLogsTotal.Inc()
 	}
 
-	w.mutex.Lock()
 	for k := range msg.JSONValues {
-		w.estimator.KeysHLL.AddWithHasher(k, gohll.MMH3Hash)
+		w.estimator.Add(k)
 	}
-
-	w.estimator.ProgramsHLL.AddWithHasher(msg.Program, gohll.MMH3Hash)
-	w.mutex.Unlock()
 }
 
 func (w *worker) snapshot() {
-	w.mutex.Lock()
-	keys := w.estimator.KeysHLL.Cardinality() - w.previousKeys
-	programs := w.estimator.ProgramsHLL.Cardinality() - w.previousPrograms
-	w.mutex.Unlock()
+	keys := w.estimator.Cardinality() - w.previousKeys
 
 	w.stats.UniqueKeysTotal.Add(keys)
 	w.previousKeys = keys
-
-	w.stats.UniqueProgramsTotal.Add(keys)
-	w.previousPrograms = programs
 }
