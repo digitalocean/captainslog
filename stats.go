@@ -4,7 +4,10 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-type stats struct {
+// Stats is a collection of prometheus metrics useful
+// for gainin insight into log streams.
+type Stats struct {
+	Namespace           string
 	LogLinesTotal       prometheus.Counter
 	BytesTotal          prometheus.Counter
 	ParseErrorTotal     prometheus.Counter
@@ -13,8 +16,10 @@ type stats struct {
 	UniqueProgramsTotal prometheus.Counter
 }
 
-func newStats(namespace string) *stats {
-	s := &stats{
+// NewStats returns a new Stats reference.
+func NewStats(namespace string) *Stats {
+	s := &Stats{
+		Namespace: namespace,
 		BytesTotal: prometheus.NewCounter(
 			prometheus.CounterOpts{
 				Namespace: namespace,
@@ -74,7 +79,9 @@ func newStats(namespace string) *stats {
 	return s
 }
 
-func (s *stats) unregister() {
+// Unregister calls unregister for each prometheus
+// counter.
+func (s *Stats) Unregister() {
 	prometheus.Unregister(s.BytesTotal)
 	prometheus.Unregister(s.LogLinesTotal)
 	prometheus.Unregister(s.ParseErrorTotal)

@@ -1,167 +1,158 @@
 package captainslog
 
+// TODO: update on worker should cause all workers to send hlls back to sextant for union
+// TODO: move hlls to use the new struct
+
 import (
+	"bufio"
+	"bytes"
+	"io"
 	"sync"
 	"time"
 
 	"github.com/mynameisfiber/gohll"
-	"github.com/prometheus/client_golang/prometheus"
 )
 
-// Sextant derives prometheus metrics from syslog logs.
+// Sextant tracks metrics derviced from logs.
 type Sextant struct {
-	LogLinesTotal       prometheus.Counter
-	BytesTotal          prometheus.Counter
-	ParseErrorTotal     prometheus.Counter
-	JSONLogsTotal       prometheus.Counter
-	UniqueKeysTotal     prometheus.Counter
-	UniqueProgramsTotal prometheus.Counter
-	keysHLL             *gohll.HLL
-	programsHLL         *gohll.HLL
-	mutex               *sync.Mutex
-	previousKeys        float64
-	previousPrograms    float64
-	Quit                chan struct{}
-	ticker              *time.Ticker
+	msgChan   chan []byte
+	hllChan   <-chan *gohll.HLL
+	estimator *Estimator
+	stats     *Stats
 }
 
-func (s *Sextant) register() {
-	prometheus.MustRegister(s.BytesTotal)
-	prometheus.MustRegister(s.LogLinesTotal)
-	prometheus.MustRegister(s.ParseErrorTotal)
-	prometheus.MustRegister(s.JSONLogsTotal)
-	prometheus.MustRegister(s.UniqueKeysTotal)
-	prometheus.MustRegister(s.UniqueProgramsTotal)
+// NewSextant returns a new Sextant.
+func NewSextant(namespace string, errorRate float64, numWorkers int) (*Sextant, error) {
+	hllChan := make(chan *gohll.HLL)
+
+	s := &Sextant{
+		msgChan:   make(chan []byte),
+		stats:     NewStats(namespace),
+		hllChan:   hllChan,
+		estimator: &Estimator{},
+	}
+
+	var err error
+	s.estimator, err = NewEstimator(errorRate)
+	if err != nil {
+		return s, err
+	}
+
+	for i := 0; i < numWorkers; i++ {
+		worker, err := newWorker(s.stats, s.msgChan, hllChan, errorRate)
+		if err != nil {
+			return s, err
+		}
+		worker.start()
+	}
+
+	return s, err
 }
 
-// Start starts the Sextant's goroutine that periodically
-// updates prometheus counters from the HLLs.
-func (s *Sextant) Start() {
+// Update dervices metrics from a log passed to it.
+func (s *Sextant) Update(b []byte) {
+	s.msgChan <- b
+}
+
+// Stop shuts down the Sextant.
+func (s *Sextant) Stop() {
+	close(s.msgChan)
+	s.stats.Unregister()
+}
+
+type worker struct {
+	stats            *Stats
+	estimator        *Estimator
+	mutex            *sync.Mutex
+	previousKeys     float64
+	previousPrograms float64
+	ticker           *time.Ticker
+	quit             chan struct{}
+	msgChan          <-chan []byte
+	hllChan          chan<- *gohll.HLL
+}
+
+func newWorker(stats *Stats, msgChan chan []byte, hllChan chan *gohll.HLL, errorRate float64) (*worker, error) {
+
+	w := &worker{
+		mutex:        &sync.Mutex{},
+		previousKeys: 0,
+		quit:         make(chan struct{}),
+		msgChan:      msgChan,
+		stats:        stats,
+		ticker:       time.NewTicker(5 * time.Second),
+		hllChan:      hllChan,
+		estimator:    &Estimator{},
+	}
+
+	var err error
+	w.estimator, err = NewEstimator(errorRate)
+	return w, err
+}
+
+func (w *worker) start() {
 	go func() {
 		for {
 			select {
-			case <-s.ticker.C:
-				s.updatePrometheus()
-			case <-s.Quit:
-				s.ticker.Stop()
+			case <-w.ticker.C:
+				w.snapshot()
+			case <-w.quit:
+				w.ticker.Stop()
 				return
+			}
+		}
+	}()
+
+	go func() {
+		for b := range w.msgChan {
+			reader := bufio.NewReader(bytes.NewBuffer(b))
+			var err error
+			for err == nil {
+				var line []byte
+				line, err = reader.ReadBytes('\n')
+				if err != nil || err == io.EOF {
+					msg, _ := NewSyslogMsgFromBytes(line)
+					w.update(&msg)
+				}
 			}
 		}
 	}()
 }
 
-// Stop stops the Sextant's goroutine.
-func (s *Sextant) Stop() {
-	close(s.Quit)
-	prometheus.Unregister(s.BytesTotal)
-	prometheus.Unregister(s.LogLinesTotal)
-	prometheus.Unregister(s.ParseErrorTotal)
-	prometheus.Unregister(s.JSONLogsTotal)
-	prometheus.Unregister(s.UniqueKeysTotal)
-	prometheus.Unregister(s.UniqueProgramsTotal)
+func (w *worker) stop() {
+	close(w.quit)
 }
 
-// Update updates the prometheus counters within Sextant based on
-// data from the passed in captainslog.SyslogMsg reference
-func (s *Sextant) Update(msg *SyslogMsg) {
-	s.mutex.Lock()
-	s.BytesTotal.Add(float64(len(msg.buf)))
-	s.LogLinesTotal.Inc()
+func (w *worker) update(msg *SyslogMsg) {
+	w.stats.BytesTotal.Add(float64(len(msg.buf)))
+	w.stats.LogLinesTotal.Inc()
 
 	if msg.errored {
-		s.ParseErrorTotal.Inc()
+		w.stats.ParseErrorTotal.Inc()
 	}
 
 	if msg.IsCee {
-		s.JSONLogsTotal.Inc()
+		w.stats.JSONLogsTotal.Inc()
 	}
 
+	w.mutex.Lock()
 	for k := range msg.JSONValues {
-		s.keysHLL.AddWithHasher(k, gohll.MMH3Hash)
+		w.estimator.KeysHLL.AddWithHasher(k, gohll.MMH3Hash)
 	}
 
-	s.programsHLL.AddWithHasher(msg.Program, gohll.MMH3Hash)
-	s.mutex.Unlock()
+	w.estimator.ProgramsHLL.AddWithHasher(msg.Program, gohll.MMH3Hash)
+	w.mutex.Unlock()
 }
 
-func (s *Sextant) updatePrometheus() {
-	s.mutex.Lock()
+func (w *worker) snapshot() {
+	w.mutex.Lock()
+	keys := w.estimator.KeysHLL.Cardinality() - w.previousKeys
+	programs := w.estimator.ProgramsHLL.Cardinality() - w.previousPrograms
+	w.mutex.Unlock()
 
-	keys := s.keysHLL.Cardinality() - s.previousKeys
-	s.UniqueKeysTotal.Add(keys)
-	s.previousKeys = keys
+	w.stats.UniqueKeysTotal.Add(keys)
+	w.previousKeys = keys
 
-	programs := s.programsHLL.Cardinality() - s.previousPrograms
-	s.UniqueProgramsTotal.Add(keys)
-	s.previousPrograms = programs
-
-	s.mutex.Unlock()
-}
-
-// NewSextant creates a new instance of a Sextant, which provides
-// prometheus metrics from syslog logs.
-func NewSextant(namespace string) (*Sextant, error) {
-
-	sextant := &Sextant{
-
-		BytesTotal: prometheus.NewCounter(
-			prometheus.CounterOpts{
-				Namespace: namespace,
-				Name:      "bytes_total",
-				Help:      "total bytes read",
-			},
-		),
-
-		LogLinesTotal: prometheus.NewCounter(
-			prometheus.CounterOpts{
-				Namespace: namespace,
-				Name:      "log_lines_total",
-				Help:      "total logs",
-			},
-		),
-
-		ParseErrorTotal: prometheus.NewCounter(
-			prometheus.CounterOpts{
-				Namespace: namespace,
-				Name:      "parse_errors_total",
-				Help:      "total parse errors",
-			},
-		),
-
-		JSONLogsTotal: prometheus.NewCounter(
-			prometheus.CounterOpts{
-				Namespace: namespace,
-				Name:      "json_logs_total",
-				Help:      "total logs that were json",
-			},
-		),
-
-		UniqueKeysTotal: prometheus.NewCounter(
-			prometheus.CounterOpts{
-				Namespace: namespace,
-				Name:      "unique_keys_total",
-				Help:      "unique JSON keys",
-			},
-		),
-
-		UniqueProgramsTotal: prometheus.NewCounter(
-			prometheus.CounterOpts{
-				Namespace: namespace,
-				Name:      "unique_programs_total",
-				Help:      "unique program names keys",
-			},
-		),
-
-		mutex:        &sync.Mutex{},
-		previousKeys: 0,
-		Quit:         make(chan struct{}),
-		ticker:       time.NewTicker(5 * time.Second),
-	}
-
-	sextant.register()
-
-	var err error
-	sextant.keysHLL, err = gohll.NewHLLByError(0.05)
-	sextant.programsHLL, err = gohll.NewHLLByError(0.05)
-	return sextant, err
+	w.stats.UniqueProgramsTotal.Add(keys)
+	w.previousPrograms = programs
 }
