@@ -18,7 +18,10 @@ type Sextant struct {
 	msgChan   chan []byte
 	hllChan   <-chan *gohll.HLL
 	estimator *Estimator
+	workers   []*worker
 	stats     *Stats
+	ticker    *time.Ticker
+	quitChan  chan struct{}
 }
 
 // NewSextant returns a new Sextant.
@@ -27,9 +30,12 @@ func NewSextant(namespace string, errorRate float64, numWorkers int) (*Sextant, 
 
 	s := &Sextant{
 		msgChan:   make(chan []byte),
-		stats:     NewStats(namespace),
 		hllChan:   hllChan,
 		estimator: &Estimator{},
+		workers:   make([]*worker, numWorkers),
+		stats:     NewStats(namespace),
+		ticker:    time.NewTicker(5 * time.Second),
+		quitChan:  make(chan struct{}),
 	}
 
 	var err error
@@ -39,17 +45,33 @@ func NewSextant(namespace string, errorRate float64, numWorkers int) (*Sextant, 
 	}
 
 	for i := 0; i < numWorkers; i++ {
-		worker, err := newWorker(s.stats, s.msgChan, hllChan, errorRate)
+		var err error
+		s.workers[i], err = newWorker(s.stats, s.msgChan, hllChan, errorRate)
 		if err != nil {
 			return s, err
 		}
-		worker.start()
+		s.workers[i].start()
 	}
+
+	go func() {
+		var signal struct{}
+		for {
+			select {
+			case <-s.ticker.C:
+				for _, w := range s.workers {
+					w.snapChan <- signal
+				}
+			case <-s.quitChan:
+				s.ticker.Stop()
+				return
+			}
+		}
+	}()
 
 	return s, err
 }
 
-// Update dervices metrics from a log passed to it.
+// Update derives metrics from a log passed to it.
 func (s *Sextant) Update(b []byte) {
 	s.msgChan <- b
 }
@@ -57,6 +79,7 @@ func (s *Sextant) Update(b []byte) {
 // Stop shuts down the Sextant.
 func (s *Sextant) Stop() {
 	close(s.msgChan)
+	close(s.quitChan)
 	s.stats.Unregister()
 }
 
@@ -66,8 +89,7 @@ type worker struct {
 	mutex            *sync.Mutex
 	previousKeys     float64
 	previousPrograms float64
-	ticker           *time.Ticker
-	quit             chan struct{}
+	snapChan         chan struct{}
 	msgChan          <-chan []byte
 	hllChan          chan<- *gohll.HLL
 }
@@ -77,10 +99,9 @@ func newWorker(stats *Stats, msgChan chan []byte, hllChan chan *gohll.HLL, error
 	w := &worker{
 		mutex:        &sync.Mutex{},
 		previousKeys: 0,
-		quit:         make(chan struct{}),
 		msgChan:      msgChan,
 		stats:        stats,
-		ticker:       time.NewTicker(5 * time.Second),
+		snapChan:     make(chan struct{}),
 		hllChan:      hllChan,
 		estimator:    &Estimator{},
 	}
@@ -92,14 +113,8 @@ func newWorker(stats *Stats, msgChan chan []byte, hllChan chan *gohll.HLL, error
 
 func (w *worker) start() {
 	go func() {
-		for {
-			select {
-			case <-w.ticker.C:
-				w.snapshot()
-			case <-w.quit:
-				w.ticker.Stop()
-				return
-			}
+		for _ = range w.snapChan {
+			w.snapshot()
 		}
 	}()
 
@@ -117,10 +132,6 @@ func (w *worker) start() {
 			}
 		}
 	}()
-}
-
-func (w *worker) stop() {
-	close(w.quit)
 }
 
 func (w *worker) update(msg *SyslogMsg) {
