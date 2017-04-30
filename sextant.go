@@ -1,7 +1,6 @@
 package captainslog
 
-// TODO: update on worker should cause all workers to send hlls back to sextant for union
-// TODO: move hlls to use the new struct
+// TODO: finish snapshotting
 
 import (
 	"bufio"
@@ -9,8 +8,6 @@ import (
 	"io"
 	"sync"
 	"time"
-
-	"github.com/mynameisfiber/gohll"
 )
 
 // Sextant tracks metrics derviced from logs.
@@ -22,16 +19,17 @@ type Sextant struct {
 	stats         *Stats
 	ticker        *time.Ticker
 	quitChan      chan struct{}
+	previousKeys  float64
 }
 
 // NewSextant returns a new Sextant.
 func NewSextant(namespace string, errorRate float64, numWorkers int) (*Sextant, error) {
-	hllChan := make(chan *gohll.HLL)
+	estimatorChan := make(chan *Estimator)
 
 	s := &Sextant{
 		msgChan:       make(chan []byte),
 		estimator:     &Estimator{},
-		estimatorChan: make(chan *Estimator),
+		estimatorChan: estimatorChan,
 		workers:       make([]*worker, numWorkers),
 		stats:         NewStats(namespace),
 		ticker:        time.NewTicker(5 * time.Second),
@@ -46,7 +44,7 @@ func NewSextant(namespace string, errorRate float64, numWorkers int) (*Sextant, 
 
 	for i := 0; i < numWorkers; i++ {
 		var err error
-		s.workers[i], err = newWorker(s.stats, s.msgChan, hllChan, errorRate)
+		s.workers[i], err = newWorker(s.stats, s.msgChan, estimatorChan, errorRate)
 		if err != nil {
 			return s, err
 		}
@@ -54,11 +52,18 @@ func NewSextant(namespace string, errorRate float64, numWorkers int) (*Sextant, 
 	}
 
 	go func() {
+		for e := range s.estimatorChan {
+			s.estimator.Union(e)
+			keys := s.estimator.Cardinality() - s.previousKeys
+			s.stats.UniqueKeysTotal.Add(keys)
+			s.previousKeys = keys
+		}
+	}()
+
+	go func() {
 		var signal struct{}
 		for {
 			select {
-			case e := <-s.estimatorChan:
-				s.estimator.Union(e)
 			case <-s.ticker.C:
 				for _, w := range s.workers {
 					w.snapChan <- signal
@@ -86,25 +91,25 @@ func (s *Sextant) Stop() {
 }
 
 type worker struct {
-	stats        *Stats
-	estimator    *Estimator
-	mutex        *sync.Mutex
-	previousKeys float64
-	snapChan     chan struct{}
-	msgChan      <-chan []byte
-	hllChan      chan<- *gohll.HLL
+	stats         *Stats
+	estimator     *Estimator
+	mutex         *sync.Mutex
+	previousKeys  float64
+	snapChan      chan struct{}
+	msgChan       <-chan []byte
+	estimatorChan chan<- *Estimator
 }
 
-func newWorker(stats *Stats, msgChan chan []byte, hllChan chan *gohll.HLL, errorRate float64) (*worker, error) {
+func newWorker(stats *Stats, msgChan chan []byte, estimatorChan chan *Estimator, errorRate float64) (*worker, error) {
 
 	w := &worker{
-		mutex:        &sync.Mutex{},
-		previousKeys: 0,
-		msgChan:      msgChan,
-		stats:        stats,
-		snapChan:     make(chan struct{}),
-		hllChan:      hllChan,
-		estimator:    &Estimator{},
+		mutex:         &sync.Mutex{},
+		previousKeys:  0,
+		msgChan:       msgChan,
+		stats:         stats,
+		snapChan:      make(chan struct{}),
+		estimatorChan: estimatorChan,
+		estimator:     &Estimator{},
 	}
 
 	var err error
@@ -115,7 +120,7 @@ func newWorker(stats *Stats, msgChan chan []byte, hllChan chan *gohll.HLL, error
 func (w *worker) start() {
 	go func() {
 		for _ = range w.snapChan {
-			w.snapshot()
+			w.estimatorChan <- w.estimator
 		}
 	}()
 
@@ -150,11 +155,4 @@ func (w *worker) update(msg *SyslogMsg) {
 	for k := range msg.JSONValues {
 		w.estimator.Add(k)
 	}
-}
-
-func (w *worker) snapshot() {
-	keys := w.estimator.Cardinality() - w.previousKeys
-
-	w.stats.UniqueKeysTotal.Add(keys)
-	w.previousKeys = keys
 }
