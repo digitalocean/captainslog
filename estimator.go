@@ -7,8 +7,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-// TODO: make an interface
-
 // JSONKeyExtractor is an Extractor that gets all keys
 // from a CEE Syslog Message
 type JSONKeyExtractor struct{}
@@ -30,7 +28,6 @@ type Extractor interface {
 // perform cardidnality estimation of keyspaces derived
 // from logs.
 type Estimator struct {
-	keysHLL    *gohll.HLL
 	mutex      *sync.Mutex
 	errorRate  float64
 	db         []*gohll.HLL
@@ -48,7 +45,6 @@ func NewEstimator(errorRate float64) (*Estimator, error) {
 		counters:   make([]prometheus.Counter, 0),
 	}
 	var err error
-	e.keysHLL, err = gohll.NewHLLByError(errorRate)
 	return e, err
 }
 
@@ -101,19 +97,7 @@ func (e *Estimator) UpdateCounters() {
 func (e *Estimator) Union(other *Estimator) {
 	e.mutex.Lock()
 	defer e.mutex.Unlock()
-	e.keysHLL.Union(other.keysHLL)
-}
-
-// Add adds a key.
-func (e *Estimator) Add(k string) {
-	e.mutex.Lock()
-	defer e.mutex.Unlock()
-	e.keysHLL.AddWithHasher(k, gohll.MMH3Hash)
-}
-
-// Cardinality returns the etsimated cardinality.
-func (e *Estimator) Cardinality() float64 {
-	e.mutex.Lock()
-	defer e.mutex.Unlock()
-	return e.keysHLL.Cardinality()
+	for i, o := range other.db {
+		e.db[i].Union(o)
+	}
 }

@@ -60,10 +60,8 @@ func NewSextant(namespace string, errorRate float64, numWorkers int) (*Sextant, 
 	go func() {
 		for e := range s.estimatorChan {
 			s.estimator.Union(e)
-			keys := s.estimator.Cardinality() - s.previousKeys
-			s.stats.UniqueKeysTotal.Add(keys)
-			s.previousKeys = keys
 		}
+		s.estimator.UpdateCounters()
 	}()
 
 	go func() {
@@ -158,7 +156,5 @@ func (w *worker) update(msg *SyslogMsg) {
 		w.stats.JSONLogsTotal.Inc()
 	}
 
-	for k := range msg.JSONValues {
-		w.estimator.Add(k)
-	}
+	w.estimator.Estimate(msg)
 }
