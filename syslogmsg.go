@@ -23,6 +23,8 @@ type SyslogMsg struct {
 	Content             string
 	timeFormat          string
 	JSONValues          map[string]interface{}
+	errored             bool
+	buf                 []byte
 	mutex               *sync.Mutex
 }
 

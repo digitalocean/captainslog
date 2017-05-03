@@ -5,13 +5,15 @@ go:
 
 before_install:
   - go get -v github.com/golang/lint/golint
+  - curl https://glide.sh/get | sh
 
 install:
+  - glide install
   - go install -race -v std
   - go get -race -t -v ./...
   - go install -race -v ./...
 
 script:
   - $HOME/gopath/bin/golint .
-  - go test -cpu=2 -race -v ./...
-  - go test -cpu=2 -covermode=atomic ./...
+  - go test -cpu=2 -race -v .
+  - go test -cpu=2 -covermode=atomic .
