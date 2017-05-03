@@ -19,7 +19,6 @@ type Sextant struct {
 	stats         *Stats
 	ticker        *time.Ticker
 	quitChan      chan struct{}
-	previousKeys  float64
 }
 
 // NewSextant returns a new Sextant.
@@ -98,7 +97,6 @@ type worker struct {
 	stats         *Stats
 	estimator     *Estimator
 	mutex         *sync.Mutex
-	previousKeys  float64
 	snapChan      chan struct{}
 	msgChan       <-chan []byte
 	estimatorChan chan<- *Estimator
@@ -108,7 +106,6 @@ func newWorker(stats *Stats, msgChan chan []byte, estimatorChan chan *Estimator,
 
 	w := &worker{
 		mutex:         &sync.Mutex{},
-		previousKeys:  0,
 		msgChan:       msgChan,
 		stats:         stats,
 		snapChan:      make(chan struct{}),
