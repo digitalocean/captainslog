@@ -42,6 +42,12 @@ func NewSextant(namespace string, errorRate float64, numWorkers int) (*Sextant, 
 		return s, err
 	}
 
+	err = s.estimator.AddCounter(&JSONKeyExtractor{}, s.stats.UniqueKeysTotal)
+
+	if err != nil {
+		return s, err
+	}
+
 	for i := 0; i < numWorkers; i++ {
 		var err error
 		s.workers[i], err = newWorker(s.stats, s.msgChan, estimatorChan, errorRate)
