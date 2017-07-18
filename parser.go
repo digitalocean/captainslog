@@ -166,7 +166,7 @@ func (p *Parser) parse() error {
 	}
 
 	copts := make([]func(*contentOpts), 0)
-	if !p.optionDontParseJSON && p.msg.IsCee {
+	if !p.optionDontParseJSON {
 		copts = append(copts, ContentOptionParseJSON)
 	}
 
@@ -326,6 +326,10 @@ func ParseHost(buf []byte) (int, string, error) {
 	var err error
 	var host string
 	var offset int
+
+	if offset > len(buf)-1 {
+		return offset, host, ErrBadHost
+	}
 
 	for buf[offset] == ' ' {
 		offset++
@@ -500,14 +504,30 @@ func ParseContent(buf []byte, options ...func(*contentOpts)) (int, Content, erro
 	}
 
 	content := Content{JSONValues: make(map[string]interface{}, 0)}
+
 	var err error
 	var offset int
+	var probablyJSON bool
 
 	if offset >= len(buf)-1 {
 		return offset, content, ErrBadContent
 	}
 
 	tokenStart := offset
+	for buf[offset] == ' ' {
+		offset++
+		if offset >= len(buf)-1 {
+			if o.requireTerminator {
+				return offset, content, ErrBadContent
+			}
+			break
+		}
+	}
+
+	if buf[offset] == '{' {
+		probablyJSON = true
+	}
+
 	for buf[offset] != '\n' {
 		offset++
 		if offset > len(buf)-1 {
@@ -518,7 +538,7 @@ func ParseContent(buf []byte, options ...func(*contentOpts)) (int, Content, erro
 		}
 	}
 
-	if o.parseJSON {
+	if o.parseJSON && probablyJSON {
 		decoder := json.NewDecoder(bytes.NewBuffer(buf[tokenStart:offset]))
 		decoder.UseNumber()
 		decoder.Decode(&content.JSONValues)

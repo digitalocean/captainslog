@@ -484,6 +484,29 @@ func TestUnmarshalCeeSpace(t *testing.T) {
 	}
 }
 
+func TestJSONWithAndWithoutCEE(t *testing.T) {
+	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: @cee:{\"a\":\"b\"}\n")
+	msg, err := captainslog.NewSyslogMsgFromBytes(b)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if _, ok := msg.JSONValues["a"]; !ok {
+		t.Error("could not find expected key in msg.JSONValues")
+	}
+
+	b = []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: {\"a\":\"b\"}\n")
+	msg, err = captainslog.NewSyslogMsgFromBytes(b)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if _, ok := msg.JSONValues["a"]; !ok {
+		t.Error("could not find expected key in msg.JSONValues")
+	}
+
+}
+
 func TestUnmarshalCeeNoSpace(t *testing.T) {
 	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test:@cee:{\"a\":\"b\"}\n")
 	msg, err := captainslog.NewSyslogMsgFromBytes(b)
@@ -876,6 +899,7 @@ func TestFuzzFindings(t *testing.T) {
 	inputs := []string{
 		"<0>Mon Jan 00 00:00:000 0 ",
 		"<0>Mon Jan 00 00:00:000 :",
+		"<0>Jan 02 00:00:00",
 	}
 
 	for _, fuzzData := range inputs {
