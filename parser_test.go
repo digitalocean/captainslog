@@ -10,879 +10,572 @@ import (
 	"github.com/digitalocean/captainslog"
 )
 
-func TestNewParserWithPidAndParse(t *testing.T) {
-	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test[12]: hello world\n")
-	p := captainslog.NewParser()
-
-	msg, err := p.ParseBytes(b)
-	if err != nil {
-		t.Error(err)
-	}
-
-	if want, got := captainslog.Local7, msg.Pri.Facility; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := captainslog.Debug, msg.Pri.Severity; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	ts := msg.Time
-
-	if want, got := 2006, ts.Year(); want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := time.Month(1), ts.Month(); want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := 2, ts.Day(); want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := 15, ts.Hour(); want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := 4, ts.Minute(); want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := 5, ts.Second(); want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := 999999, ts.Nanosecond()/1000; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	_, zoneOffsetSecs := ts.Zone()
-	if want, got := -25200, zoneOffsetSecs; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := "host.example.org", msg.Host; want != got {
-		t.Errorf("want %q, got %q", want, got)
-	}
-
-	if want, got := "test", msg.Program; want != got {
-		t.Errorf("want %q, got %q", want, got)
-	}
-
-	if want, got := "test[12]:", msg.Tag; want != got {
-		t.Errorf("want %q, got %q", want, got)
-	}
-
-	if want, got := "12", msg.Pid; want != got {
-		t.Errorf("want %q, got %q", want, got)
-	}
-
-	if want, got := false, msg.IsCee; want != got {
-		t.Errorf("want '%v', got '%v'", want, got)
-	}
-
-	if want, got := " hello world", msg.Content; want != got {
-		t.Errorf("want %q, got %q", want, got)
-	}
-
-	if want, got := 0, bytes.Compare(b, msg.Bytes()); want != got {
-		t.Errorf("want '%v', got '%v'", want, got)
-	}
-
-	if want, got := string(b), msg.String(); want != got {
-		t.Errorf("want %q, got %q", want, got)
-	}
-
-}
-
-func TestNewParserAndParse(t *testing.T) {
-	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: hello world\n")
-	p := captainslog.NewParser()
-
-	msg, err := p.ParseBytes(b)
-	if err != nil {
-		t.Error(err)
-	}
-
-	if want, got := captainslog.Local7, msg.Pri.Facility; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := captainslog.Debug, msg.Pri.Severity; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	ts := msg.Time
-
-	if want, got := 2006, ts.Year(); want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := time.Month(1), ts.Month(); want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := 2, ts.Day(); want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := 15, ts.Hour(); want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := 4, ts.Minute(); want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := 5, ts.Second(); want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := 999999, ts.Nanosecond()/1000; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	_, zoneOffsetSecs := ts.Zone()
-	if want, got := -25200, zoneOffsetSecs; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := "host.example.org", msg.Host; want != got {
-		t.Errorf("want %q, got %q", want, got)
-	}
-
-	if want, got := "test:", msg.Tag; want != got {
-		t.Errorf("want %q, got %q", want, got)
-	}
-
-	if want, got := "test", msg.Program; want != got {
-		t.Errorf("want %q, got %q", want, got)
-	}
-
-	if want, got := false, msg.IsCee; want != got {
-		t.Errorf("want '%v', got '%v'", want, got)
-	}
-
-	if want, got := " hello world", msg.Content; want != got {
-		t.Errorf("want %q, got %q", want, got)
-	}
-
-	if want, got := 0, bytes.Compare(b, msg.Bytes()); want != got {
-		t.Errorf("want '%v', got '%v'", want, got)
-	}
-
-	if want, got := string(b), msg.String(); want != got {
-		t.Errorf("want %q, got %q", want, got)
-	}
-
-}
-
-func TestParserOptionNoHostname(t *testing.T) {
-	b := []byte("<86>Jul 24 11:53:47 sudo: pam_unix(sudo:session): session opened for user root by (uid=0)")
-	p := captainslog.NewParser(captainslog.OptionNoHostname)
-
-	host, err := os.Hostname()
-	if err != nil {
-		t.Error(err)
-	}
-
-	msg, err := p.ParseBytes(b)
-	if err != nil {
-		t.Error(err)
-	}
-
-	if want, got := host, msg.Host; want != got {
-		t.Errorf("want %q, got %q", want, got)
-	}
-}
-
-func TestParseOptionDontParseJSON(t *testing.T) {
-	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: @cee:{\"a\":\"b\"}\n")
-	p := captainslog.NewParser(captainslog.OptionDontParseJSON)
-
-	msg, err := p.ParseBytes(b)
-	if err != nil {
-		t.Error(err)
-	}
-
-	if want, got := true, msg.IsCee; want != got {
-		t.Errorf("want '%v', got '%v'", want, got)
-	}
-
-	if want, got := " @cee:", msg.Cee; want != got {
-		t.Errorf("want %q, got %q", want, got)
-	}
-
-	if want, got := "{\"a\":\"b\"}", msg.Content; want != got {
-		t.Errorf("want %q, got %q", want, got)
-	}
-
-	if want, got := string(b), msg.String(); want != got {
-		t.Errorf("want %q, got %q", want, got)
-	}
-}
-
-func TestNewSyslogMsgFromBytes(t *testing.T) {
-	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: hello world\n")
-	msg, err := captainslog.NewSyslogMsgFromBytes(b)
-	if err != nil {
-		t.Error(err)
-	}
-
-	if want, got := captainslog.Local7, msg.Pri.Facility; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := captainslog.Debug, msg.Pri.Severity; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	ts := msg.Time
-
-	if want, got := 2006, ts.Year(); want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := time.Month(1), ts.Month(); want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := 2, ts.Day(); want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := 15, ts.Hour(); want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := 4, ts.Minute(); want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := 5, ts.Second(); want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := 999999, ts.Nanosecond()/1000; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	_, zoneOffsetSecs := ts.Zone()
-	if want, got := -25200, zoneOffsetSecs; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := "host.example.org", msg.Host; want != got {
-		t.Errorf("want %q, got %q", want, got)
-	}
-
-	if want, got := "test", msg.Program; want != got {
-		t.Errorf("want %q, got %q", want, got)
-	}
-
-	if want, got := "test:", msg.Tag; want != got {
-		t.Errorf("want %q, got %q", want, got)
-	}
-
-	if want, got := false, msg.IsCee; want != got {
-		t.Errorf("want '%v', got '%v'", want, got)
-	}
-
-	if want, got := " hello world", msg.Content; want != got {
-		t.Errorf("want %q, got %q", want, got)
-	}
-
-	if want, got := 0, bytes.Compare(b, msg.Bytes()); want != got {
-		t.Errorf("want '%v', got '%v'", want, got)
-	}
-
-	if want, got := string(b), msg.String(); want != got {
-		t.Errorf("want %q, got %q", want, got)
-	}
-}
-
-func TestUnmarshalDateNoMicros(t *testing.T) {
-	b := []byte("<191>2006-01-02T15:04:05.999-07:00 host.example.org test: hello world\n")
-	msg, err := captainslog.NewSyslogMsgFromBytes(b)
-	if err != nil {
-		t.Error(err)
-	}
-
-	if want, got := captainslog.Local7, msg.Pri.Facility; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := captainslog.Debug, msg.Pri.Severity; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	ts := msg.Time
-
-	if want, got := 2006, ts.Year(); want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := time.Month(1), ts.Month(); want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := 2, ts.Day(); want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := 15, ts.Hour(); want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := 4, ts.Minute(); want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := 5, ts.Second(); want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := 999000, ts.Nanosecond()/1000; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	_, zoneOffsetSecs := ts.Zone()
-	if want, got := -25200, zoneOffsetSecs; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := "host.example.org", msg.Host; want != got {
-		t.Errorf("want %q, got %q", want, got)
-	}
-
-	if want, got := "test", msg.Program; want != got {
-		t.Errorf("want %q, got %q", want, got)
-	}
-
-	if want, got := "test:", msg.Tag; want != got {
-		t.Errorf("want %q, got %q", want, got)
-	}
-
-	if want, got := false, msg.IsCee; want != got {
-		t.Errorf("want '%v', got '%v'", want, got)
-	}
-
-	if want, got := " hello world", msg.Content; want != got {
-		t.Errorf("want %q, got %q", want, got)
-	}
-
-	if want, got := 0, bytes.Compare(b, msg.Bytes()); want != got {
-		t.Errorf("want '%v', got '%v'", want, got)
-	}
-
-	if want, got := string(b), msg.String(); want != got {
-		t.Errorf("want %q, got %q", want, got)
-	}
-}
-
-func TestUnmarshalDateNoMillis(t *testing.T) {
-	b := []byte("<171>2015-12-18T18:08:17+00:00 host.example.org test: hello world\n")
-	msg, err := captainslog.NewSyslogMsgFromBytes(b)
-	if err != nil {
-		t.Error(err)
-	}
-
-	if want, got := captainslog.Local5, msg.Pri.Facility; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := captainslog.Err, msg.Pri.Severity; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	ts := msg.Time
-
-	if want, got := 2015, ts.Year(); want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := time.Month(12), ts.Month(); want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := 18, ts.Day(); want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := 18, ts.Hour(); want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := 8, ts.Minute(); want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := 17, ts.Second(); want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := 0, ts.Nanosecond()/1000; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	_, zoneOffsetSecs := ts.Zone()
-	if want, got := 0, zoneOffsetSecs; want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := "host.example.org", msg.Host; want != got {
-		t.Errorf("want %q, got %q", want, got)
-	}
-
-	if want, got := "test", msg.Program; want != got {
-		t.Errorf("want %q, got %q", want, got)
-	}
-
-	if want, got := "test:", msg.Tag; want != got {
-		t.Errorf("want %q, got %q", want, got)
-	}
-
-	if want, got := false, msg.IsCee; want != got {
-		t.Errorf("want '%v', got '%v'", want, got)
-	}
-
-	if want, got := " hello world", msg.Content; want != got {
-		t.Errorf("want %q, got %q", want, got)
-	}
-
-	if want, got := 0, bytes.Compare(b, msg.Bytes()); want != got {
-		t.Errorf("want '%v', got '%v'", want, got)
-	}
-
-	if want, got := string(b), msg.String(); want != got {
-		t.Errorf("want %q, got %q", want, got)
-	}
-}
-
-func TestUnmarshalCeeSpace(t *testing.T) {
-	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: @cee:{\"a\":\"b\"}\n")
-	msg, err := captainslog.NewSyslogMsgFromBytes(b)
-	if err != nil {
-		t.Error(err)
-	}
-
-	if want, got := true, msg.IsCee; want != got {
-		t.Errorf("want '%v', got '%v'", want, got)
-	}
-
-	if want, got := " @cee:", msg.Cee; want != got {
-		t.Errorf("want %q, got %q", want, got)
-	}
-
-	if want, got := "{\"a\":\"b\"}", msg.Content; want != got {
-		t.Errorf("want %q, got %q", want, got)
-	}
-
-	if want, got := string(b), msg.String(); want != got {
-		t.Errorf("want %q, got %q", want, got)
-	}
-}
-
-func TestJSONWithAndWithoutCEE(t *testing.T) {
-	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: @cee:{\"a\":\"b\"}\n")
-	msg, err := captainslog.NewSyslogMsgFromBytes(b)
-	if err != nil {
-		t.Error(err)
-	}
-
-	if _, ok := msg.JSONValues["a"]; !ok {
-		t.Error("could not find expected key in msg.JSONValues")
-	}
-
-	b = []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: {\"a\":\"b\"}\n")
-	msg, err = captainslog.NewSyslogMsgFromBytes(b)
-	if err != nil {
-		t.Error(err)
-	}
-
-	if _, ok := msg.JSONValues["a"]; !ok {
-		t.Error("could not find expected key in msg.JSONValues")
-	}
-
-}
-
-func TestUnmarshalCeeNoSpace(t *testing.T) {
-	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test:@cee:{\"a\":\"b\"}\n")
-	msg, err := captainslog.NewSyslogMsgFromBytes(b)
-	if err != nil {
-		t.Error(err)
-	}
-
-	if want, got := true, msg.IsCee; want != got {
-		t.Errorf("want '%v', got '%v'", want, got)
-	}
-
-	if want, got := "@cee:", msg.Cee; want != got {
-		t.Errorf("want %q, got %q", want, got)
-	}
-
-	if want, got := string(b), msg.String(); want != got {
-		t.Errorf("want %q, got %q", want, got)
-	}
-}
-
-func TestUnmarshalCeeEarlyBufferBeforeColon(t *testing.T) {
-	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test:@cee\n")
-	msg, err := captainslog.NewSyslogMsgFromBytes(b)
-	if err != nil {
-		t.Error(err)
-	}
-
-	if want, got := false, msg.IsCee; want != got {
-		t.Errorf("want '%v', got '%v'", want, got)
-	}
-
-	if want, got := "", msg.Cee; want != got {
-		t.Errorf("want %q, got %q", want, got)
-	}
-
-	if want, got := "@cee", msg.Content; want != got {
-		t.Errorf("want %q, got %q", want, got)
-	}
-}
-
-func TestUnmarshalCeeEarlyBufferAfterColon(t *testing.T) {
-	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test:@cee:\n")
-	msg, err := captainslog.NewSyslogMsgFromBytes(b)
-
-	if want, got := captainslog.ErrBadContent, err; want != got {
-		t.Errorf("want '%v', got '%v'", want, got)
-	}
-
-	if want, got := true, msg.IsCee; want != got {
-		t.Errorf("want '%v', got '%v'", want, got)
-	}
-}
-
-func unmarshalCeeButNotCee(t *testing.T, b []byte) {
-	msg, err := captainslog.NewSyslogMsgFromBytes(b)
-	if err != nil {
-		t.Error(err)
-	}
-
-	if want, got := false, msg.IsCee; want != got {
-		t.Errorf("want '%v', got '%v'", want, got)
-	}
-}
-
-func TestUnmarshalCeeButNotCee(t *testing.T) {
-	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test:@cee{\"a\":\"b\"}\n")
-	unmarshalCeeButNotCee(t, b)
-
-	b = []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test:@ce{\"a\":\"b\"}\n")
-	unmarshalCeeButNotCee(t, b)
-
-	b = []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test:@c{\"a\":\"b\"}\n")
-	unmarshalCeeButNotCee(t, b)
-
-	b = []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test:@{\"a\":\"b\"}\n")
-	unmarshalCeeButNotCee(t, b)
-}
-
-func TestUnmarshalNoContent(t *testing.T) {
-	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test:\n")
-	_, err := captainslog.NewSyslogMsgFromBytes(b)
-
-	if want, got := captainslog.ErrBadContent, err; want != got {
-		t.Errorf("want '%v', got '%v'", want, got)
-	}
-}
-
-func TestUnmarshalTagEndHandling(t *testing.T) {
-	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: hello world\n")
-	msg, err := captainslog.NewSyslogMsgFromBytes(b)
-	if err != nil {
-		t.Error(err)
-	}
-
-	if want, got := "test", msg.Program; want != got {
-		t.Errorf("want %q, got %q", want, got)
-	}
-
-	if want, got := "test:", msg.Tag; want != got {
-		t.Errorf("want %q, got %q", want, got)
-	}
-
-	b = []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test hello world\n")
-	msg, err = captainslog.NewSyslogMsgFromBytes(b)
-	if err != nil {
-		t.Error(err)
-	}
-
-	if want, got := "test", msg.Program; want != got {
-		t.Errorf("want %q, got %q", want, got)
-	}
-
-	if want, got := "test", msg.Tag; want != got {
-		t.Errorf("want %q, got %q", want, got)
-	}
-
-	if want, got := string(b), msg.String(); want != got {
-		t.Errorf("want %q, got %q", want, got)
-	}
-}
-
-func TestHandlingTruncatedSubseconds(t *testing.T) {
-	b := []byte("<191>2006-01-02T15:04:05.99999-07:00 host.example.org test: hello world\n")
-	_, err := captainslog.NewSyslogMsgFromBytes(b)
-	if err != nil {
-		t.Error(err)
-	}
-}
-
-func TestUnmarshalUnixTime(t *testing.T) {
-	b := []byte("<38>Mon Jan  2 15:04:05 host.example.org test: hello world\n")
-	msg, err := captainslog.NewSyslogMsgFromBytes(b)
-	if err != nil {
-		t.Error(err)
-	}
-
-	ts := msg.Time
-
-	if want, got := time.Now().Year(), ts.Year(); want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := time.Month(1), ts.Month(); want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := 2, ts.Day(); want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := 15, ts.Hour(); want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := 4, ts.Minute(); want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := 5, ts.Second(); want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-}
-
-func TestUnmarshalTimeANSIC(t *testing.T) {
-	b := []byte("<38>Mon Jan  2 15:04:05 2006 host.example.org test: hello world\n")
-	msg, err := captainslog.NewSyslogMsgFromBytes(b)
-	if err != nil {
-		t.Error(err)
-	}
-
-	ts := msg.Time
-
-	if want, got := time.Month(1), ts.Month(); want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := 2, ts.Day(); want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := 15, ts.Hour(); want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := 4, ts.Minute(); want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := 5, ts.Second(); want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := string(b), msg.String(); want != got {
-		t.Errorf("want %q, got %q", want, got)
-	}
-}
-
-func TestUnmarshalTimeUnixDate(t *testing.T) {
-	b := []byte("<38>Mon Jan  2 15:04:05 MST 2006 host.example.org test: hello world\n")
-	msg, err := captainslog.NewSyslogMsgFromBytes(b)
-	if err != nil {
-		t.Error(err)
-	}
-
-	ts := msg.Time
-
-	if want, got := time.Month(1), ts.Month(); want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := 2, ts.Day(); want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := 15, ts.Hour(); want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := 4, ts.Minute(); want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := 5, ts.Second(); want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	zone, _ := ts.Zone()
-	if want, got := "MST", zone; want != got {
-		t.Errorf("want %q, got %q", want, got)
-	}
-}
-
-func TestUnmarshalTimeNoYear(t *testing.T) {
-	b := []byte("<38>Mon Jan  2 15:04:05 host.example.org test: hello world\n")
-	msg, err := captainslog.NewSyslogMsgFromBytes(b)
-	if err != nil {
-		t.Error(err)
-	}
-
-	ts := msg.Time
-
-	if want, got := time.Month(1), ts.Month(); want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := 2, ts.Day(); want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := 15, ts.Hour(); want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := 4, ts.Minute(); want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-
-	if want, got := 5, ts.Second(); want != got {
-		t.Errorf("want '%d', got '%d'", want, got)
-	}
-}
-
-func TestUnmarshalNoPriority(t *testing.T) {
-	b := []byte("2006-01-02T15:04:05.999999-07:00 host.example.org test: hello world\n")
-	_, err := captainslog.NewSyslogMsgFromBytes(b)
-
-	if want, got := captainslog.ErrBadPriority, err; want != got {
-		t.Errorf("want %q, got %q", want, got)
-	}
-}
-
-func TestUnmarshalNoPriorityEnd(t *testing.T) {
-	b := []byte("<1912006-01-02T15:04:05.999999-07:00 host.example.org test: hello world\n")
-	_, err := captainslog.NewSyslogMsgFromBytes(b)
-
-	if want, got := captainslog.ErrBadPriority, err; want != got {
-		t.Errorf("want %q, got %q", want, got)
-	}
-}
-
-func TestUnmarshalPriorityTooLong(t *testing.T) {
-	b := []byte("<9999>2006-01-02T15:04:05.999999-07:00 host.example.org test: hello world\n")
-	_, err := captainslog.NewSyslogMsgFromBytes(b)
-
-	if want, got := captainslog.ErrBadPriority, err; want != got {
-		t.Errorf("want %q, got %q", want, got)
-	}
-}
-
-func TestUnmarshalPriorityTruncated(t *testing.T) {
-	b := []byte("<99\n")
-	_, err := captainslog.NewSyslogMsgFromBytes(b)
-
-	if want, got := captainslog.ErrBadPriority, err; want != got {
-		t.Errorf("want %q, got %q", want, got)
-	}
-}
-
-func TestUnmarshalDateTruncated(t *testing.T) {
-	b := []byte("<191>2006-01-02T15:0")
-	_, err := captainslog.NewSyslogMsgFromBytes(b)
-
-	if want, got := captainslog.ErrBadTime, err; want != got {
-		t.Errorf("want %q, got %q", want, got)
-	}
-}
-
-func TestUnmarshalHostTruncated(t *testing.T) {
-	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.examp")
-	_, err := captainslog.NewSyslogMsgFromBytes(b)
-
-	if want, got := captainslog.ErrBadHost, err; want != got {
-		t.Errorf("want %q, got %q", want, got)
-	}
-}
-
-func TestUnmarshalNoHost(t *testing.T) {
-	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 ")
-	_, err := captainslog.NewSyslogMsgFromBytes(b)
-
-	if want, got := captainslog.ErrBadHost, err; want != got {
-		t.Errorf("want %q, got %q", want, got)
-	}
-}
-
-func TestUnmarshalTagTruncated(t *testing.T) {
-	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org tes")
-	_, err := captainslog.NewSyslogMsgFromBytes(b)
-
-	if want, got := captainslog.ErrBadTag, err; want != got {
-		t.Errorf("want %q, got %q", want, got)
-	}
-}
-
-func TestUnmarshalNoTag(t *testing.T) {
-	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org ")
-	_, err := captainslog.NewSyslogMsgFromBytes(b)
-
-	if want, got := captainslog.ErrBadTag, err; want != got {
-		t.Errorf("want %q, got %q", want, got)
-	}
-}
-
-func TestUnmarshalContentNotTerminated(t *testing.T) {
-	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: hello wo")
-	_, err := captainslog.NewSyslogMsgFromBytes(b)
-	// 2016-07-22: changed this test to pass as default captainslog.NewSyslogMsgFromBytes now
-	// treats end buffer as end of content.
-	if err != nil {
-		t.Error(err)
-	}
-}
-
-func TestUnmarshalPriNotNumber(t *testing.T) {
-	b := []byte("<1a1>2006-01-02T15:04:05.999999-07:00 host.example.org test: hello world\n")
-	_, err := captainslog.NewSyslogMsgFromBytes(b)
-
-	if want, got := captainslog.ErrBadPriority, err; want != got {
-		t.Errorf("want %q, got %q", want, got)
-	}
-}
-
-func TestTagWithColonNoPid(t *testing.T) {
-	b := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: hello world\n")
-	p := captainslog.NewParser()
-
-	msg, err := p.ParseBytes(b)
-	if err != nil {
-		t.Error(err)
-	}
-
-	if want, got := "test", msg.Program; want != got {
-		t.Errorf("want %q, got %q", want, got)
-	}
-	if want, got := "test:", msg.Tag; want != got {
-		t.Errorf("want %q, got %q", want, got)
+func TestParser(t *testing.T) {
+	testCases := []struct {
+		name     string
+		input    string
+		options  []func(*captainslog.Parser)
+		err      error
+		facility captainslog.Facility
+		severity captainslog.Severity
+		year     int
+		month    int
+		day      int
+		hour     int
+		minute   int
+		second   int
+		millis   int
+		offset   int
+		host     string
+		program  string
+		tag      string
+		pid      string
+		cee      bool
+		content  string
+		jsonKeys []string
+	}{
+		{
+			name:     "parse plain test with pid",
+			input:    "<191>2006-01-02T15:04:05.999999-07:00 host.example.org test[12]: hello world\n",
+			options:  []func(*captainslog.Parser){},
+			err:      nil,
+			facility: captainslog.Local7,
+			severity: captainslog.Debug,
+			year:     2006,
+			month:    1,
+			day:      2,
+			hour:     15,
+			minute:   4,
+			second:   5,
+			millis:   999999,
+			offset:   -25200,
+			host:     "host.example.org",
+			program:  "test",
+			tag:      "test[12]:",
+			pid:      "12",
+			cee:      false,
+			content:  " hello world",
+			jsonKeys: []string{},
+		},
+		{
+			name:     "parse plain test without pid",
+			input:    "<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: hello world\n",
+			options:  []func(*captainslog.Parser){},
+			err:      nil,
+			facility: captainslog.Local7,
+			severity: captainslog.Debug,
+			year:     2006,
+			month:    1,
+			day:      2,
+			hour:     15,
+			minute:   4,
+			second:   5,
+			millis:   999999,
+			offset:   -25200,
+			host:     "host.example.org",
+			program:  "test",
+			tag:      "test:",
+			pid:      "",
+			cee:      false,
+			content:  " hello world",
+			jsonKeys: []string{},
+		},
+		{
+			name:     "missing host with OptionNoHostname",
+			input:    "<86>Jul 24 11:53:47 sudo: pam_unix(sudo:session): session opened for user root by (uid=0)\n",
+			options:  []func(*captainslog.Parser){captainslog.OptionNoHostname},
+			err:      nil,
+			facility: captainslog.AuthPriv,
+			severity: captainslog.Info,
+			year:     time.Now().Year(),
+			month:    7,
+			day:      24,
+			hour:     11,
+			minute:   53,
+			second:   47,
+			millis:   0,
+			offset:   0,
+			host:     "localhost",
+			program:  "sudo",
+			tag:      "sudo:",
+			pid:      "",
+			cee:      false,
+			content:  " pam_unix(sudo:session): session opened for user root by (uid=0)",
+			jsonKeys: []string{},
+		},
+		{
+			name:     "parse @cee json",
+			input:    "<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: @cee:{\"a\":\"b\"}\n",
+			options:  []func(*captainslog.Parser){},
+			err:      nil,
+			facility: captainslog.Local7,
+			severity: captainslog.Debug,
+			year:     2006,
+			month:    1,
+			day:      2,
+			hour:     15,
+			minute:   4,
+			second:   5,
+			millis:   999999,
+			offset:   -25200,
+			host:     "host.example.org",
+			program:  "test",
+			tag:      "test:",
+			pid:      "",
+			cee:      true,
+			content:  "{\"a\":\"b\"}",
+			jsonKeys: []string{"a"},
+		},
+		{
+			name:     "parse log with no micros",
+			input:    "<191>2006-01-02T15:04:05.999-07:00 host.example.org test[12]: hello world\n",
+			options:  []func(*captainslog.Parser){},
+			err:      nil,
+			facility: captainslog.Local7,
+			severity: captainslog.Debug,
+			year:     2006,
+			month:    1,
+			day:      2,
+			hour:     15,
+			minute:   4,
+			second:   5,
+			millis:   999000,
+			offset:   -25200,
+			host:     "host.example.org",
+			program:  "test",
+			tag:      "test[12]:",
+			pid:      "12",
+			cee:      false,
+			content:  " hello world",
+			jsonKeys: []string{},
+		},
+		{
+			name:     "parse log with no millis",
+			input:    "<171>2015-12-18T18:08:17+00:00 host.example.org test[12]: hello world\n",
+			options:  []func(*captainslog.Parser){},
+			err:      nil,
+			facility: captainslog.Local5,
+			severity: captainslog.Err,
+			year:     2015,
+			month:    12,
+			day:      18,
+			hour:     18,
+			minute:   8,
+			second:   17,
+			millis:   0,
+			offset:   0,
+			host:     "host.example.org",
+			program:  "test",
+			tag:      "test[12]:",
+			pid:      "12",
+			cee:      false,
+			content:  " hello world",
+			jsonKeys: []string{},
+		},
+		{
+			name:     "parse cee with space",
+			input:    "<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: @cee:{\"a\":\"b\"}\n",
+			options:  []func(*captainslog.Parser){},
+			err:      nil,
+			facility: captainslog.Local7,
+			severity: captainslog.Debug,
+			year:     2006,
+			month:    1,
+			day:      2,
+			hour:     15,
+			minute:   4,
+			second:   5,
+			millis:   999999,
+			offset:   -25200,
+			host:     "host.example.org",
+			program:  "test",
+			tag:      "test:",
+			pid:      "",
+			cee:      true,
+			content:  "{\"a\":\"b\"}",
+			jsonKeys: []string{"a"},
+		},
+		{
+			name:     "parse cee with no space",
+			input:    "<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: @cee:{\"a\":\"b\"}\n",
+			options:  []func(*captainslog.Parser){},
+			err:      nil,
+			facility: captainslog.Local7,
+			severity: captainslog.Debug,
+			year:     2006,
+			month:    1,
+			day:      2,
+			hour:     15,
+			minute:   4,
+			second:   5,
+			millis:   999999,
+			offset:   -25200,
+			host:     "host.example.org",
+			program:  "test",
+			tag:      "test:",
+			pid:      "",
+			cee:      true,
+			content:  "{\"a\":\"b\"}",
+			jsonKeys: []string{"a"},
+		},
+		{
+			name:     "parse json without cee",
+			input:    "<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: {\"a\":\"b\"}\n",
+			options:  []func(*captainslog.Parser){},
+			err:      nil,
+			facility: captainslog.Local7,
+			severity: captainslog.Debug,
+			year:     2006,
+			month:    1,
+			day:      2,
+			hour:     15,
+			minute:   4,
+			second:   5,
+			millis:   999999,
+			offset:   -25200,
+			host:     "host.example.org",
+			program:  "test",
+			tag:      "test:",
+			pid:      "",
+			cee:      false,
+			content:  " {\"a\":\"b\"}",
+			jsonKeys: []string{"a"},
+		},
+		{
+			name:     "parse json without cee with OptionDontParseJSON",
+			input:    "<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: {\"a\":\"b\"}\n",
+			options:  []func(*captainslog.Parser){captainslog.OptionDontParseJSON},
+			err:      nil,
+			facility: captainslog.Local7,
+			severity: captainslog.Debug,
+			year:     2006,
+			month:    1,
+			day:      2,
+			hour:     15,
+			minute:   4,
+			second:   5,
+			millis:   999999,
+			offset:   -25200,
+			host:     "host.example.org",
+			program:  "test",
+			tag:      "test:",
+			pid:      "",
+			cee:      false,
+			content:  " {\"a\":\"b\"}",
+			jsonKeys: []string{},
+		},
+		{
+			name:     "parse cee early termination",
+			input:    "<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: @cee\n",
+			options:  []func(*captainslog.Parser){},
+			err:      nil,
+			facility: captainslog.Local7,
+			severity: captainslog.Debug,
+			year:     2006,
+			month:    1,
+			day:      2,
+			hour:     15,
+			minute:   4,
+			second:   5,
+			millis:   999999,
+			offset:   -25200,
+			host:     "host.example.org",
+			program:  "test",
+			tag:      "test:",
+			pid:      "",
+			cee:      false,
+			content:  " @cee",
+			jsonKeys: []string{},
+		},
+		{
+			name:     "parse with tag with no colon",
+			input:    "<191>2006-01-02T15:04:05.999999-07:00 host.example.org test hello world\n",
+			options:  []func(*captainslog.Parser){},
+			err:      nil,
+			facility: captainslog.Local7,
+			severity: captainslog.Debug,
+			year:     2006,
+			month:    1,
+			day:      2,
+			hour:     15,
+			minute:   4,
+			second:   5,
+			millis:   999999,
+			offset:   -25200,
+			host:     "host.example.org",
+			program:  "test",
+			tag:      "test",
+			pid:      "",
+			cee:      false,
+			content:  " hello world",
+			jsonKeys: []string{},
+		},
+		{
+			name:     "parse with truncated subseconds",
+			input:    "<191>2006-01-02T15:04:05.99999-07:00 host.example.org test hello world\n",
+			options:  []func(*captainslog.Parser){},
+			err:      nil,
+			facility: captainslog.Local7,
+			severity: captainslog.Debug,
+			year:     2006,
+			month:    1,
+			day:      2,
+			hour:     15,
+			minute:   4,
+			second:   5,
+			millis:   999990,
+			offset:   -25200,
+			host:     "host.example.org",
+			program:  "test",
+			tag:      "test",
+			pid:      "",
+			cee:      false,
+			content:  " hello world",
+			jsonKeys: []string{},
+		},
+		{
+			name:     "parse with unix time",
+			input:    "<191>Mon Jan  2 15:04:05 host.example.org test: hello world\n",
+			options:  []func(*captainslog.Parser){},
+			err:      nil,
+			facility: captainslog.Local7,
+			severity: captainslog.Debug,
+			year:     time.Now().Year(),
+			month:    1,
+			day:      2,
+			hour:     15,
+			minute:   4,
+			second:   5,
+			millis:   0,
+			offset:   0,
+			host:     "host.example.org",
+			program:  "test",
+			tag:      "test:",
+			pid:      "",
+			cee:      false,
+			content:  " hello world",
+			jsonKeys: []string{},
+		},
+		{
+			name:     "parse with ansi time",
+			input:    "<191>Mon Jan  2 15:04:05 2006 host.example.org test: hello world\n",
+			options:  []func(*captainslog.Parser){},
+			err:      nil,
+			facility: captainslog.Local7,
+			severity: captainslog.Debug,
+			year:     2006,
+			month:    1,
+			day:      2,
+			hour:     15,
+			minute:   4,
+			second:   5,
+			millis:   0,
+			offset:   0,
+			host:     "host.example.org",
+			program:  "test",
+			tag:      "test:",
+			pid:      "",
+			cee:      false,
+			content:  " hello world",
+			jsonKeys: []string{},
+		},
+		{
+			name:     "parse with unix date time",
+			input:    "<191>Mon Jan  2 15:04:05 MST 2006 host.example.org test: hello world\n",
+			options:  []func(*captainslog.Parser){},
+			err:      nil,
+			facility: captainslog.Local7,
+			severity: captainslog.Debug,
+			year:     2006,
+			month:    1,
+			day:      2,
+			hour:     15,
+			minute:   4,
+			second:   5,
+			millis:   0,
+			offset:   0,
+			host:     "host.example.org",
+			program:  "test",
+			tag:      "test:",
+			pid:      "",
+			cee:      false,
+			content:  " hello world",
+			jsonKeys: []string{},
+		},
+		{
+			name:    "parse cee with no json after",
+			input:   "<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: @cee:\n",
+			options: []func(*captainslog.Parser){},
+			err:     captainslog.ErrBadContent,
+		},
+		{
+			name:    "parse bad content",
+			input:   "<191>2006-01-02T15:04:05.999999-07:00 host.example.org test:\n",
+			options: []func(*captainslog.Parser){},
+			err:     captainslog.ErrBadContent,
+		},
+		{
+			name:    "parse no priority",
+			input:   "2006-01-02T15:04:05.999999-07:00 host.example.org test:\n",
+			options: []func(*captainslog.Parser){},
+			err:     captainslog.ErrBadPriority,
+		},
+		{
+			name:    "parse no priority end",
+			input:   "<1912006-01-02T15:04:05.999999-07:00 host.example.org test:\n",
+			options: []func(*captainslog.Parser){},
+			err:     captainslog.ErrBadPriority,
+		},
+		{
+			name:    "parse bad priority end",
+			input:   "<9999>2006-01-02T15:04:05.999999-07:00 host.example.org test:\n",
+			options: []func(*captainslog.Parser){},
+			err:     captainslog.ErrBadPriority,
+		},
+		{
+			name:    "parse priority truncated",
+			input:   "<99\n",
+			options: []func(*captainslog.Parser){},
+			err:     captainslog.ErrBadPriority,
+		},
+		{
+			name:    "parse date truncated",
+			input:   "<191>2006-01-02T15:0",
+			options: []func(*captainslog.Parser){},
+			err:     captainslog.ErrBadTime,
+		},
+		{
+			name:    "parse host truncated",
+			input:   "<191>2006-01-02T15:04:05.999999-07:00 ",
+			options: []func(*captainslog.Parser){},
+			err:     captainslog.ErrBadHost,
+		},
+		{
+			name:    "parse no host",
+			input:   "<191>2006-01-02T15:04:05.999999-07:00 host.examp",
+			options: []func(*captainslog.Parser){},
+			err:     captainslog.ErrBadHost,
+		},
+		{
+			name:    "parse tag truncated",
+			input:   "<191>2006-01-02T15:04:05.999999-07:00 host.example.org tes",
+			options: []func(*captainslog.Parser){},
+			err:     captainslog.ErrBadTag,
+		},
+		{
+			name:    "parse no tag",
+			input:   "<191>2006-01-02T15:04:05.999999-07:00 host.example.org ",
+			options: []func(*captainslog.Parser){},
+			err:     captainslog.ErrBadTag,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			p := captainslog.NewParser(tc.options...)
+
+			msg, err := p.ParseBytes([]byte(tc.input))
+
+			if want, got := tc.err, err; want != got {
+				t.Errorf("error: want %q, got %q", want, got)
+			}
+
+			if tc.err == nil {
+				if want, got := tc.facility, msg.Pri.Facility; want != got {
+					t.Errorf("facility: want %q, got %q", want, got)
+				}
+
+				if want, got := tc.severity, msg.Pri.Severity; want != got {
+					t.Errorf("facility: want %q, got %q", want, got)
+				}
+
+				if want, got := tc.year, msg.Time.Year(); want != got {
+					t.Errorf("year: want %d, got %d", want, got)
+				}
+
+				if want, got := time.Month(tc.month), msg.Time.Month(); want != got {
+					t.Errorf("month: want %d, got %d", want, got)
+				}
+
+				if want, got := tc.day, msg.Time.Day(); want != got {
+					t.Errorf("day: want %d, got %d", want, got)
+				}
+
+				if want, got := tc.hour, msg.Time.Hour(); want != got {
+					t.Errorf("hour: want %d, got %d", want, got)
+				}
+
+				if want, got := tc.minute, msg.Time.Minute(); want != got {
+					t.Errorf("minute: want %d, got %d", want, got)
+				}
+
+				if want, got := tc.second, msg.Time.Second(); want != got {
+					t.Errorf("second: want %d, got %d", want, got)
+				}
+
+				if want, got := tc.millis, msg.Time.Nanosecond()/1000; want != got {
+					t.Errorf("millis: want %d, got %d", want, got)
+				}
+
+				_, offsetSeconds := msg.Time.Zone()
+				if want, got := tc.offset, offsetSeconds; want != got {
+					t.Errorf("offset: want %d, got %d", want, got)
+				}
+
+				var useLocal bool
+				if tc.host == "localhost" {
+					host, err := os.Hostname()
+					if err != nil {
+						t.Error(err)
+					}
+					tc.host = host
+					useLocal = true
+				}
+
+				if want, got := tc.host, msg.Host; want != got {
+					t.Errorf("host: want %q, got %q", want, got)
+				}
+
+				if want, got := tc.program, msg.Program; want != got {
+					t.Errorf("program: want %q, got %q", want, got)
+				}
+
+				if want, got := tc.tag, msg.Tag; want != got {
+					t.Errorf("tag: want %q, got %q", want, got)
+				}
+
+				if want, got := tc.pid, msg.Pid; want != got {
+					t.Errorf("pid: want %q, got %q", want, got)
+				}
+
+				if want, got := tc.cee, msg.IsCee; want != got {
+					t.Errorf("cee: want %v, got %v", want, got)
+				}
+
+				if want, got := tc.content, msg.Content; want != got {
+					t.Errorf("content: want %q, got %q", want, got)
+				}
+
+				if want, got := len(tc.jsonKeys), len(msg.JSONValues); want != got {
+					t.Errorf("keys: want %d, got %d", want, got)
+				}
+
+				for _, v := range tc.jsonKeys {
+					if _, ok := msg.JSONValues[v]; !ok {
+						t.Errorf("could not find expected key %q in msg.JSONValues", v)
+					}
+				}
+
+				// NOTE: for now we do not do a byte level reconstruction test if the original
+				// message had JSON, since re-encoding the JSON to reconstruct the message
+				// can remove spaces that were in the origin message
+				if !useLocal && !msg.IsJSON {
+					if want, got := 0, bytes.Compare([]byte(tc.input), msg.Bytes()); want != got {
+						t.Errorf("want %q, got  %q", tc.input, msg.Bytes())
+					}
+				}
+			}
+		})
 	}
 }
 

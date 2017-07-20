@@ -178,6 +178,9 @@ func (p *Parser) parse() error {
 	_, content, err = ParseContent(p.buf[p.cur:], copts...)
 	p.msg.Content = content.Content
 	p.msg.JSONValues = content.JSONValues
+	if len(p.msg.JSONValues) > 0 {
+		p.msg.IsJSON = true
+	}
 	return err
 }
 
