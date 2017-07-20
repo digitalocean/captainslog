@@ -18,6 +18,7 @@ type SyslogMsg struct {
 	Program             string
 	Cee                 string
 	Pid                 string
+	IsJSON              bool
 	IsCee               bool
 	optionDontParseJSON bool
 	Content             string
@@ -100,7 +101,7 @@ func (s *SyslogMsg) AddTag(key string, value interface{}) {
 // String returns the SyslogMsg as an RFC3164 string.
 func (s *SyslogMsg) String() string {
 	var content string
-	if s.IsCee && !s.optionDontParseJSON {
+	if s.IsJSON && !s.optionDontParseJSON {
 		b, err := json.Marshal(s.JSONValues)
 		if err != nil {
 			panic(err)
