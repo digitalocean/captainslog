@@ -3,6 +3,7 @@ package captainslog_test
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/digitalocean/captainslog"
 )
@@ -104,5 +105,70 @@ func TestNginxToSyslogMsgBackToString(t *testing.T) {
 	wanted := string(input) + "\n"
 	if want, got := wanted, msg.String(); want != got {
 		t.Errorf("want %q, got %q", want, got)
+	}
+}
+
+func TestNewSyslogMsg(t *testing.T) {
+	testCases := []struct {
+		name     string
+		content  string
+		isJSON   bool
+		facility captainslog.Facility
+		severity captainslog.Severity
+		time     time.Time
+		program  string
+		pid      string
+		host     string
+		jsonKeys []string
+	}{
+		{
+			name:     "constructing plain syslog message",
+			content:  "this is a non json message",
+			facility: captainslog.Local7,
+			severity: captainslog.Err,
+			time:     time.Now(),
+			program:  "test",
+			pid:      "12",
+			host:     "host.example.com",
+		},
+		{
+			name:     "constructing json syslog message",
+			content:  "{\"a\":\"b\"}",
+			isJSON:   true,
+			facility: captainslog.Local7,
+			severity: captainslog.Err,
+			time:     time.Now(),
+			program:  "test",
+			pid:      "12",
+			host:     "host.example.com",
+			jsonKeys: []string{"a"},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			msg := captainslog.NewSyslogMsg()
+			msg.SetFacility(tc.facility)
+			msg.SetSeverity(tc.severity)
+			msg.SetTime(tc.time)
+			msg.SetProgram(tc.program)
+			msg.SetPid(tc.pid)
+			msg.SetHost(tc.host)
+
+			err := msg.SetContent(tc.content)
+			if err != nil {
+				t.Error(err)
+			}
+
+			for _, v := range tc.jsonKeys {
+				if _, ok := msg.JSONValues[v]; !ok {
+					t.Errorf("could not find expected key %q in msg.JSONValues", v)
+				}
+			}
+
+			b := msg.Bytes()
+			t.Log(string(b))
+
+		})
 	}
 }

@@ -70,6 +70,37 @@ func NewSyslogMsgFromBytes(b []byte, options ...func(*Parser)) (SyslogMsg, error
 	return msg, err
 }
 
+func (s *SyslogMsg) SetFacility(f Facility) {
+	s.Pri.Facility = f
+}
+
+func (s *SyslogMsg) SetSeverity(sv Severity) {
+	s.Pri.Severity = sv
+}
+
+func (s *SyslogMsg) SetTime(t time.Time) {
+	s.Time = t
+}
+
+func (s *SyslogMsg) SetProgram(p string) {
+	s.Program = p
+}
+
+func (s *SyslogMsg) SetPid(p string) {
+	s.Pid = p
+}
+
+func (s *SyslogMsg) SetHost(h string) {
+	s.Host = h
+}
+
+func (s *SyslogMsg) SetContent(c string) error {
+	_, content, err := ParseContent([]byte(c), ContentOptionParseJSON)
+	s.Content = content.Content
+	s.JSONValues = content.JSONValues
+	return err
+}
+
 // AddTagArray adds a tag to an array of tags at the key. If the key
 // does not already exist, it will create the key and initially it
 // to a []interface{}.
