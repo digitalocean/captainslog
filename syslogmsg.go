@@ -70,30 +70,45 @@ func NewSyslogMsgFromBytes(b []byte, options ...func(*Parser)) (SyslogMsg, error
 	return msg, err
 }
 
+// SetFacility accepts a captainslog.Facility to
+// set the facility of the SyslogMsg
 func (s *SyslogMsg) SetFacility(f Facility) {
 	s.Pri.Facility = f
 }
 
+// SetSeverity accepts a captainslog.Severity to set the
+// severity of the SyslogMsg
 func (s *SyslogMsg) SetSeverity(sv Severity) {
 	s.Pri.Severity = sv
 }
 
+// SetTime accepts a time.Time to set the time
+// of the SyslogMsg
 func (s *SyslogMsg) SetTime(t time.Time) {
 	s.Time = t
 }
 
+// SetProgram accepts a string to set the programname
+// of the SyslogMsg
 func (s *SyslogMsg) SetProgram(p string) {
 	s.Program = p
 }
 
+// SetPid accepts a string to set the pid of
+// the SyslogMsg
 func (s *SyslogMsg) SetPid(p string) {
 	s.Pid = p
 }
 
+// SetHost accepts a string to set the host
+// of the SyslogMsg
 func (s *SyslogMsg) SetHost(h string) {
 	s.Host = h
 }
 
+// SetContent accepts a string to set the  content
+// of the SyslogMsg. It will check to see if the
+// string is JSON and try to parse it if so.
 func (s *SyslogMsg) SetContent(c string) error {
 	_, content, err := ParseContent([]byte(c), ContentOptionParseJSON)
 	s.Content = content.Content
