@@ -355,7 +355,7 @@ func ParseHost(buf []byte) (int, string, error) {
 }
 
 func isAlphaNumeric(r rune) bool {
-	return unicode.IsLetter(r) || unicode.IsNumber(r)
+	return unicode.IsLetter(r) || unicode.IsNumber(r) || string(r) == "-" || string(r) == "_"
 }
 
 // ParseTag will try to find a syslog tag at the beginning of the
