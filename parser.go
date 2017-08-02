@@ -354,6 +354,10 @@ func ParseHost(buf []byte) (int, string, error) {
 	return offset, host, err
 }
 
+func isAlphaNumeric(r rune) bool {
+	return unicode.IsLetter(r) || unicode.IsNumber(r)
+}
+
 // ParseTag will try to find a syslog tag at the beginning of the
 // passed in []byte. It returns the offset from the start of the []byte
 // to the end of the tag string, a captainslog.Tag, and an error.
@@ -373,33 +377,40 @@ func ParseTag(buf []byte) (int, Tag, error) {
 	}
 
 	tokenStart := offset
+
+	if !isAlphaNumeric(rune(buf[tokenStart])) {
+		return offset, tag, ErrBadTag
+	}
+
 	for {
-		switch buf[offset] {
-		case ':':
-			offset++
-			tokenEnd = offset
-			hasColon = true
-			goto FoundEndOfTag
-		case ' ':
-			tokenEnd = offset
-			goto FoundEndOfTag
-		case '[':
-			tag.Program = string(buf[tokenStart:offset])
-			offset++
-			if offset > len(buf)-1 {
-				return offset, tag, ErrBadTag
-			}
-			pidStart := offset
-			tokenEnd = offset
-			for buf[offset] != ']' {
+		if !isAlphaNumeric(rune(buf[offset])) {
+			switch buf[offset] {
+			case ' ':
+				tokenEnd = offset
+				goto FoundEndOfTag
+			case '[':
+				tag.Program = string(buf[tokenStart:offset])
 				offset++
 				if offset > len(buf)-1 {
 					return offset, tag, ErrBadTag
 				}
+				pidStart := offset
+				tokenEnd = offset
+				for buf[offset] != ']' {
+					offset++
+					if offset > len(buf)-1 {
+						return offset, tag, ErrBadTag
+					}
+				}
+				pidEnd := offset
+				tag.Pid = string(buf[pidStart:pidEnd])
+				hasPid = true
+			default:
+				offset++
+				tokenEnd = offset
+				hasColon = true
+				goto FoundEndOfTag
 			}
-			pidEnd := offset
-			tag.Pid = string(buf[pidStart:pidEnd])
-			hasPid = true
 		}
 		offset++
 		if offset > len(buf)-1 {
