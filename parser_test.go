@@ -81,6 +81,52 @@ func TestParser(t *testing.T) {
 			jsonKeys: []string{},
 		},
 		{
+			name:     "parse plain test without pid no space after tag",
+			input:    "<191>2006-01-02T15:04:05.999999-07:00 host.example.org test:hello world\n",
+			options:  []func(*captainslog.Parser){},
+			err:      nil,
+			facility: captainslog.Local7,
+			severity: captainslog.Debug,
+			year:     2006,
+			month:    1,
+			day:      2,
+			hour:     15,
+			minute:   4,
+			second:   5,
+			millis:   999999,
+			offset:   -25200,
+			host:     "host.example.org",
+			program:  "test",
+			tag:      "test:",
+			pid:      "",
+			cee:      false,
+			content:  "hello world",
+			jsonKeys: []string{},
+		},
+		{
+			name:     "parse plain test without pid strange tag end",
+			input:    "<191>2006-01-02T15:04:05.999999-07:00 host.example.org test^ hello world\n",
+			options:  []func(*captainslog.Parser){},
+			err:      nil,
+			facility: captainslog.Local7,
+			severity: captainslog.Debug,
+			year:     2006,
+			month:    1,
+			day:      2,
+			hour:     15,
+			minute:   4,
+			second:   5,
+			millis:   999999,
+			offset:   -25200,
+			host:     "host.example.org",
+			program:  "test",
+			tag:      "test^",
+			pid:      "",
+			cee:      false,
+			content:  " hello world",
+			jsonKeys: []string{},
+		},
+		{
 			name:     "missing host with OptionNoHostname",
 			input:    "<86>Jul 24 11:53:47 sudo: pam_unix(sudo:session): session opened for user root by (uid=0)\n",
 			options:  []func(*captainslog.Parser){captainslog.OptionNoHostname},
@@ -468,6 +514,12 @@ func TestParser(t *testing.T) {
 			options: []func(*captainslog.Parser){},
 			err:     captainslog.ErrBadTag,
 		},
+		{
+			name:    "parse rsyslog could not determine hostname but has ip",
+			input:   "<28>2017-08-01T13:49:57.537348+00:00 192.168.1.123 [localhost] test[146407]: hello world",
+			options: []func(*captainslog.Parser){},
+			err:     captainslog.ErrBadTag,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -477,7 +529,7 @@ func TestParser(t *testing.T) {
 			msg, err := p.ParseBytes([]byte(tc.input))
 
 			if want, got := tc.err, err; want != got {
-				t.Errorf("error: want %q, got %q", want, got)
+				t.Errorf("error: want %v, got %v", want, got)
 			}
 
 			if tc.err == nil {
