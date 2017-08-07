@@ -62,12 +62,13 @@ type Parser struct {
 	requireTerminator   bool
 	optionNoHostname    bool
 	optionDontParseJSON bool
+	location            *time.Location
 	msg                 *SyslogMsg
 }
 
 // NewParser returns a new parser
 func NewParser(options ...func(*Parser)) *Parser {
-	p := Parser{}
+	p := Parser{ location: time.UTC }
 	for _, option := range options {
 		option(&p)
 	}
@@ -92,6 +93,15 @@ func OptionDontParseJSON(p *Parser) {
 	p.optionDontParseJSON = true
 }
 
+// OptionLocation is a helper function to configure the parser to parse time
+// in the given timezone, If the parsed time contains a valid timezone
+// identifier this takes precedence. Default timezone is UTC.
+func OptionLocation(location *time.Location) func(*Parser) {
+	return func(p *Parser) {
+		p.location = location
+	}
+}
+
 // ParseBytes accepts a []byte and tries to parse it into a SyslogMsg.
 func (p *Parser) ParseBytes(b []byte) (SyslogMsg, error) {
 	p.buf = b
@@ -104,7 +114,7 @@ func (p *Parser) ParseBytes(b []byte) (SyslogMsg, error) {
 
 	err := p.parse()
 	if p.msg.Time.Year() == 0 {
-		p.msg.Time = p.msg.Time.AddDate(time.Now().Year(), 0, 0)
+		p.msg.Time = p.msg.Time.AddDate(time.Now().In(p.location).Year(), 0, 0)
 	}
 	return *p.msg, err
 }
@@ -120,7 +130,7 @@ func (p *Parser) parse() error {
 	p.cur = p.cur + offset
 
 	var msgTime Time
-	offset, msgTime, err = ParseTime(p.buf[p.cur:])
+	offset, msgTime, err = ParseTime(p.buf[p.cur:], p.location)
 	if err != nil {
 		return err
 	}
@@ -268,7 +278,7 @@ func CheckForLikelyDateTime(buf []byte) bool {
 // ParseTime will try to find a syslog time at the beginning of the
 // passed in []byte. It returns the offset from the start of the []byte
 // to the end of the time string, a captainslog.Time, and an error.
-func ParseTime(buf []byte) (int, Time, error) {
+func ParseTime(buf []byte, location *time.Location) (int, Time, error) {
 	var err error
 	var foundTime bool
 	var msgTime Time
@@ -307,7 +317,7 @@ func ParseTime(buf []byte) (int, Time, error) {
 		}
 
 		timeStr := string(buf[offset : offset+tLen])
-		msgTime.Time, err = time.Parse(timeFormat, timeStr)
+		msgTime.Time, err = time.ParseInLocation(timeFormat, timeStr, location)
 		if err == nil {
 			offset = offset + tLen
 			msgTime.TimeFormat = timeFormat
