@@ -14,10 +14,8 @@ type SyslogMsg struct {
 	Pri                 Priority
 	Time                time.Time
 	Host                string
-	Tag                 string
-	Program             string
+	Tag                 Tag
 	Cee                 string
-	Pid                 string
 	IsJSON              bool
 	IsCee               bool
 	optionDontParseJSON bool
@@ -47,9 +45,29 @@ type Time struct {
 // syslog message's tag, including the full
 // tag, the program name and the pid.
 type Tag struct {
-	Tag     string
-	Program string
-	Pid     string
+	Program  string
+	Pid      string
+	HasColon bool
+}
+
+func NewTag() *Tag {
+	return &Tag{
+		HasColon: true,
+	}
+}
+
+// String converts the specified Tag into a string.
+func (t Tag) String() string {
+	colon := ""
+	if t.HasColon {
+		colon = ":"
+	}
+
+	if len(t.Pid) == 0 {
+		return t.Program + colon
+	}
+
+	return fmt.Sprintf("%s[%s]%s", t.Program, t.Pid, colon)
 }
 
 // NewSyslogMsg creates a new empty SyslogMsg.
@@ -72,14 +90,14 @@ func NewSyslogMsgFromBytes(b []byte, options ...func(*Parser)) (SyslogMsg, error
 
 // SetFacility accepts a captainslog.Facility to
 // set the facility of the SyslogMsg
-func (s *SyslogMsg) SetFacility(f Facility) {
-	s.Pri.Facility = f
+func (s *SyslogMsg) SetFacility(f Facility) error {
+	return s.Pri.SetFacility(f)
 }
 
 // SetSeverity accepts a captainslog.Severity to set the
 // severity of the SyslogMsg
-func (s *SyslogMsg) SetSeverity(sv Severity) {
-	s.Pri.Severity = sv
+func (s *SyslogMsg) SetSeverity(sv Severity) error {
+	return s.Pri.SetSeverity(sv)
 }
 
 // SetTime accepts a time.Time to set the time
@@ -91,13 +109,13 @@ func (s *SyslogMsg) SetTime(t time.Time) {
 // SetProgram accepts a string to set the programname
 // of the SyslogMsg
 func (s *SyslogMsg) SetProgram(p string) {
-	s.Program = p
+	s.Tag.Program = p
 }
 
 // SetPid accepts a string to set the pid of
 // the SyslogMsg
 func (s *SyslogMsg) SetPid(p string) {
-	s.Pid = p
+	s.Tag.Pid = p
 }
 
 // SetHost accepts a string to set the host
@@ -167,7 +185,7 @@ func (s *SyslogMsg) String() string {
 			content = s.Content
 		}
 	}
-	return fmt.Sprintf("<%d>%s %s %s%s%s\n", s.Pri.Priority, s.Time.Format(s.timeFormat), s.Host, s.Tag, s.Cee, content)
+	return fmt.Sprintf("<%s>%s %s %s%s%s\n", s.Pri, s.Time.Format(s.timeFormat), s.Host, s.Tag, s.Cee, content)
 }
 
 // Bytes returns the SyslogMsg as RFC3164 []byte.
@@ -194,9 +212,9 @@ func (s *SyslogMsg) JSON() ([]byte, error) {
 
 	content["syslog_time"] = s.Time
 	content["syslog_host"] = s.Host
-	content["syslog_tag"] = s.Tag
-	content["syslog_programname"] = s.Program
-	content["syslog_pid"] = s.Pid
+	content["syslog_tag"] = s.Tag.String()
+	content["syslog_programname"] = s.Tag.Program
+	content["syslog_pid"] = s.Tag.Pid
 	content["syslog_facilitytext"] = s.Pri.Facility.String()
 	content["syslog_severitytext"] = s.Pri.Severity.String()
 

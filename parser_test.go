@@ -659,15 +659,15 @@ func TestParser(t *testing.T) {
 					t.Errorf("host: want %q, got %q", want, got)
 				}
 
-				if want, got := tc.program, msg.Program; want != got {
+				if want, got := tc.program, msg.Tag.Program; want != got {
 					t.Errorf("program: want %q, got %q", want, got)
 				}
 
-				if want, got := tc.tag, msg.Tag; want != got {
+				if want, got := tc.tag, msg.Tag.String(); want != got {
 					t.Errorf("tag: want %q, got %q", want, got)
 				}
 
-				if want, got := tc.pid, msg.Pid; want != got {
+				if want, got := tc.pid, msg.Tag.Pid; want != got {
 					t.Errorf("pid: want %q, got %q", want, got)
 				}
 

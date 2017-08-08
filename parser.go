@@ -159,9 +159,7 @@ func (p *Parser) parse() error {
 		return err
 	}
 	p.cur = p.cur + offset
-	p.msg.Tag = msgTag.Tag
-	p.msg.Program = msgTag.Program
-	p.msg.Pid = msgTag.Pid
+	p.msg.Tag = msgTag
 
 	var cee string
 	offset, cee, err = ParseCEE(p.buf[p.cur:])
@@ -232,10 +230,11 @@ func ParsePri(buf []byte) (int, Priority, error) {
 
 	pVal, _ := strconv.Atoi(string(buf[tokenStart:offset]))
 
-	pri = Priority{
-		Priority: pVal,
-		Facility: Facility(pVal / 8),
-		Severity: Severity(pVal % 8),
+	if err = pri.SetFacility(Facility(pVal / 8)); err != nil {
+		return offset, pri, err
+	}
+	if err = pri.SetSeverity(Severity(pVal % 8)); err != nil {
+		return offset, pri, err
 	}
 
 	offset++
@@ -374,22 +373,23 @@ func isAlphaNumeric(r rune) bool {
 func ParseTag(buf []byte) (int, Tag, error) {
 	var err error
 	var hasPid bool
-	var hasColon bool
-	var tag Tag
 	var tokenEnd int
 	var offset int
+
+	tag := NewTag()
+	tag.HasColon = false
 
 	for buf[offset] == ' ' {
 		offset++
 		if offset > len(buf)-1 {
-			return offset, tag, ErrBadTag
+			return offset, *tag, ErrBadTag
 		}
 	}
 
 	tokenStart := offset
 
 	if !isAlphaNumeric(rune(buf[tokenStart])) {
-		return offset, tag, ErrBadTag
+		return offset, *tag, ErrBadTag
 	}
 
 	for {
@@ -397,7 +397,7 @@ func ParseTag(buf []byte) (int, Tag, error) {
 		case ':':
 			offset++
 			tokenEnd = offset
-			hasColon = true
+			tag.HasColon = true
 			goto FoundEndOfTag
 
 		case ' ':
@@ -407,14 +407,14 @@ func ParseTag(buf []byte) (int, Tag, error) {
 			tag.Program = string(buf[tokenStart:offset])
 			offset++
 			if offset > len(buf)-1 {
-				return offset, tag, ErrBadTag
+				return offset, *tag, ErrBadTag
 			}
 			pidStart := offset
 			tokenEnd = offset
 			for buf[offset] != ']' {
 				offset++
 				if offset > len(buf)-1 {
-					return offset, tag, ErrBadTag
+					return offset, *tag, ErrBadTag
 				}
 			}
 			pidEnd := offset
@@ -423,20 +423,20 @@ func ParseTag(buf []byte) (int, Tag, error) {
 		}
 		offset++
 		if offset > len(buf)-1 {
-			return offset, tag, ErrBadTag
+			return offset, *tag, ErrBadTag
 		}
 	}
 
 FoundEndOfTag:
-	tag.Tag = string(buf[tokenStart:tokenEnd])
+	strTag := string(buf[tokenStart:tokenEnd])
 	if !hasPid {
-		if !hasColon {
-			tag.Program = tag.Tag
+		if !tag.HasColon {
+			tag.Program = strTag
 		} else {
 			tag.Program = string(buf[tokenStart : tokenEnd-1])
 		}
 	}
-	return offset, tag, err
+	return offset, *tag, err
 }
 
 // ParseCEE will try to find a syslog cee cookie  at the beginning of the
