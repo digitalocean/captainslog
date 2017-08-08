@@ -1,6 +1,9 @@
 package captainslog
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+)
 
 var (
 	//ErrBadPriority is returned when the priority of a message is malformed.
@@ -190,24 +193,51 @@ type Priority struct {
 	Severity Severity
 }
 
+// String converts the given Priority to a string.
+func (p Priority) String() string {
+	return fmt.Sprintf("%d", p.Priority)
+}
+
+func (p *Priority) SetFacility(f Facility) error {
+	if int(f) < 0 || int(f) > 23 {
+		return ErrBadFacility
+	}
+
+	p.Facility = f
+	p.calculatePriority()
+
+	return nil
+}
+
+func (p *Priority) SetSeverity(s Severity) error {
+	if int(s) < 0 || int(s) > 7 {
+		return ErrBadSeverity
+	}
+
+	p.Severity = s
+	p.calculatePriority()
+
+	return nil
+}
+
+func (p *Priority) calculatePriority() {
+	p.Priority = int(p.Facility)*8 + int(p.Severity)
+}
+
 // NewPriority calculates a Priority from a Facility
 // and Severity.
 func NewPriority(f Facility, s Severity) (*Priority, error) {
-	p := &Priority{
-		Facility: f,
-		Severity: s,
-		Priority: (int(f) * 8) + int(s),
+	p := &Priority{}
+
+	if err := p.SetFacility(f); err != nil {
+		return nil, err
 	}
 
-	var err error
-
-	if int(f) < 0 || int(f) > 23 {
-		return p, ErrBadFacility
+	if err := p.SetSeverity(s); err != nil {
+		return nil, err
 	}
 
-	if int(s) < 0 || int(s) > 7 {
-		return p, ErrBadSeverity
-	}
+	p.calculatePriority()
 
-	return p, err
+	return p, nil
 }
