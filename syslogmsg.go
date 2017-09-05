@@ -11,18 +11,19 @@ import (
 
 // SyslogMsg holds an Unmarshaled rfc3164 message.
 type SyslogMsg struct {
-	Pri                 Priority
-	Time                time.Time
-	Host                string
-	Tag                 Tag
-	Cee                 string
-	IsJSON              bool
-	IsCee               bool
-	optionDontParseJSON bool
-	Content             string
-	timeFormat          string
-	JSONValues          map[string]interface{}
-	mutex               *sync.Mutex
+	Pri                  Priority
+	Time                 time.Time
+	Host                 string
+	Tag                  Tag
+	Cee                  string
+	IsJSON               bool
+	IsCee                bool
+	optionDontParseJSON  bool
+	optionUseLocalFormat bool
+	Content              string
+	timeFormat           string
+	JSONValues           map[string]interface{}
+	mutex                *sync.Mutex
 }
 
 // Content holds the Content of a syslog message,
@@ -71,11 +72,15 @@ func (t Tag) String() string {
 }
 
 // NewSyslogMsg creates a new empty SyslogMsg.
-func NewSyslogMsg() SyslogMsg {
-	return SyslogMsg{
+func NewSyslogMsg(options ...SyslogMsgOption) SyslogMsg {
+	s := SyslogMsg{
 		JSONValues: make(map[string]interface{}),
 		mutex:      &sync.Mutex{},
 	}
+	for _, option := range options {
+		option(&s)
+	}
+	return s
 }
 
 // NewSyslogMsgFromBytes accepts a []byte containing an RFC3164
@@ -116,6 +121,7 @@ func (s *SyslogMsg) SetProgram(p string) {
 // the SyslogMsg
 func (s *SyslogMsg) SetPid(p string) {
 	s.Tag.Pid = p
+	s.Tag.HasColon = true
 }
 
 // SetHost accepts a string to set the host
@@ -162,8 +168,28 @@ func (s *SyslogMsg) AddTag(key string, value interface{}) {
 	s.JSONValues[key] = value
 }
 
+// SyslogMsgOption can be passed to SyslogMsg.String(), SyslogMsg.Byte(), or
+// NewSyslogMsg to control formatting
+type SyslogMsgOption func(*SyslogMsg)
+
+// OptionUseLocalFormat tells SyslogMsg.String() and SyslogMsg.Byte() to format the
+// message to be compatible with writing to /dev/log rather than over the wire.
+func OptionUseLocalFormat(s *SyslogMsg) {
+	s.optionUseLocalFormat = true
+}
+
+// OptionUseRemoteFormat tells SyslogMsg.String() and SyslogMsg.Byte() to use wire
+// format for the message instead of local format
+func OptionUseRemoteFormat(s *SyslogMsg) {
+	s.optionUseLocalFormat = false
+}
+
 // String returns the SyslogMsg as an RFC3164 string.
-func (s *SyslogMsg) String() string {
+func (s *SyslogMsg) String(options ...SyslogMsgOption) string {
+	for _, option := range options {
+		option(s)
+	}
+
 	var content string
 	if s.IsJSON && !s.optionDontParseJSON {
 		b, err := json.Marshal(s.JSONValues)
@@ -185,12 +211,20 @@ func (s *SyslogMsg) String() string {
 			content = s.Content
 		}
 	}
-	return fmt.Sprintf("<%s>%s %s %s%s%s\n", s.Pri, s.Time.Format(s.timeFormat), s.Host, s.Tag, s.Cee, content)
+
+	if s.optionUseLocalFormat {
+		return fmt.Sprintf("<%s>%s %s%s%s\n", s.Pri.String(), s.Time.Format("Jan 02 15:04:05"), s.Tag.String(), s.Cee, content)
+	} else {
+		if s.timeFormat == "" {
+			s.timeFormat = rsyslogTimeFormat
+		}
+		return fmt.Sprintf("<%s>%s %s %s%s%s\n", s.Pri, s.Time.Format(s.timeFormat), s.Host, s.Tag.String(), s.Cee, content)
+	}
 }
 
 // Bytes returns the SyslogMsg as RFC3164 []byte.
-func (s *SyslogMsg) Bytes() []byte {
-	return []byte(s.String())
+func (s *SyslogMsg) Bytes(options ...SyslogMsgOption) []byte {
+	return []byte(s.String(options...))
 }
 
 // JSON returns a JSON representation of the message encoded in a []byte. Syslog fields are named with
