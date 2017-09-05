@@ -110,52 +110,64 @@ func TestNginxToSyslogMsgBackToString(t *testing.T) {
 
 func TestNewSyslogMsg(t *testing.T) {
 	testCases := []struct {
-		name     string
-		content  string
-		isJSON   bool
-		facility captainslog.Facility
-		severity captainslog.Severity
-		time     time.Time
-		program  string
-		pid      string
-		host     string
-		jsonKeys []string
+		name       string
+		options    []captainslog.SyslogMsgOption
+		content    string
+		isJSON     bool
+		facility   captainslog.Facility
+		severity   captainslog.Severity
+		timeString string
+		timeFormat string
+		program    string
+		pid        string
+		host       string
+		jsonKeys   []string
+		want       string
 	}{
 		{
-			name:     "constructing plain syslog message",
-			content:  "this is a non json message",
-			facility: captainslog.Local7,
-			severity: captainslog.Err,
-			time:     time.Now(),
-			program:  "test",
-			pid:      "12",
-			host:     "host.example.com",
+			name:       "constructing plain syslog message",
+			options:    []captainslog.SyslogMsgOption{},
+			content:    "this is a non json message",
+			facility:   captainslog.Local7,
+			severity:   captainslog.Err,
+			timeString: "2017 Aug 15 16:18:34",
+			timeFormat: "2006 Jan 02 15:04:05",
+			program:    "test",
+			pid:        "12",
+			host:       "host.example.com",
+			want:       "<187>2017-08-15T16:18:34+00:00 host.example.com test[12]:this is a non json message\n",
 		},
+
 		{
-			name:     "constructing json syslog message",
-			content:  "{\"a\":\"b\"}",
-			isJSON:   true,
-			facility: captainslog.Local7,
-			severity: captainslog.Err,
-			time:     time.Now(),
-			program:  "test",
-			pid:      "12",
-			host:     "host.example.com",
-			jsonKeys: []string{"a"},
+			name:       "emitting a message in local syslog format",
+			options:    []captainslog.SyslogMsgOption{captainslog.OptionUseLocalFormat},
+			content:    "this is a non json message",
+			facility:   captainslog.Local7,
+			severity:   captainslog.Err,
+			timeString: "2017 Aug 15 16:18:34",
+			timeFormat: "2006 Jan 02 15:04:05",
+			program:    "test",
+			pid:        "12",
+			host:       "host.example.com",
+			want:       "<187>Aug 15 16:18:34 test[12]:this is a non json message\n",
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			msg := captainslog.NewSyslogMsg()
+			msg := captainslog.NewSyslogMsg(tc.options...)
 			msg.SetFacility(tc.facility)
 			msg.SetSeverity(tc.severity)
-			msg.SetTime(tc.time)
+			msgTime, err := time.Parse(tc.timeFormat, tc.timeString)
+			if err != nil {
+				t.Error(err)
+			}
+			msg.SetTime(msgTime)
 			msg.SetProgram(tc.program)
 			msg.SetPid(tc.pid)
 			msg.SetHost(tc.host)
 
-			err := msg.SetContent(tc.content)
+			err = msg.SetContent(tc.content)
 			if err != nil {
 				t.Error(err)
 			}
@@ -166,9 +178,9 @@ func TestNewSyslogMsg(t *testing.T) {
 				}
 			}
 
-			b := msg.Bytes()
-			t.Log(string(b))
-
+			if want, got := tc.want, msg.String(); want != got {
+				t.Errorf("want %q, got %q", want, got)
+			}
 		})
 	}
 }
