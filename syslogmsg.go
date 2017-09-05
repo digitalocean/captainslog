@@ -213,7 +213,7 @@ func (s *SyslogMsg) String(options ...SyslogMsgOption) string {
 	}
 
 	if s.optionUseLocalFormat {
-		return fmt.Sprintf("<%s>%s %s%s%s\n", s.Pri.String(), s.Time.Format("Jan 02 15:04:05"), s.Tag.String(), s.Cee, content)
+		return fmt.Sprintf("<%s>%s %s%s%s\n", s.Pri.String(), s.Time.Format(time.Stamp), s.Tag.String(), s.Cee, content)
 	} else {
 		if s.timeFormat == "" {
 			s.timeFormat = rsyslogTimeFormat
