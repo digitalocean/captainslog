@@ -218,7 +218,7 @@ func (s *SyslogMsg) String(options ...SyslogMsgOption) string {
 		if s.timeFormat == "" {
 			s.timeFormat = rsyslogTimeFormat
 		}
-		return fmt.Sprintf("<%s>%s %s %s%s%s\n", s.Pri, s.Time.Format(s.timeFormat), s.Host, s.Tag.String(), s.Cee, content)
+		return fmt.Sprintf("<%s>%s %s %s%s%s\n", s.Pri.String(), s.Time.Format(s.timeFormat), s.Host, s.Tag.String(), s.Cee, content)
 	}
 }
 
