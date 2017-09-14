@@ -71,6 +71,31 @@ func (s Severity) String() string {
 	return severityText
 }
 
+func (s *Severity) FromString(v string) error {
+	switch v {
+	case Emerg.String():
+		*s = Emerg
+	case Alert.String():
+		*s = Alert
+	case Crit.String():
+		*s = Crit
+	case Err.String():
+		*s = Err
+	case Warning.String():
+		*s = Warning
+	case Notice.String():
+		*s = Notice
+	case Info.String():
+		*s = Info
+	case Debug.String():
+		*s = Debug
+	default:
+		return fmt.Errorf("Failed to load syslog severity from string: %s", v)
+	}
+
+	return nil
+}
+
 // Facility represents a syslog facility code
 type Facility int
 
@@ -184,6 +209,55 @@ func (f Facility) String() string {
 	}
 
 	return faciliyText
+}
+
+func (f *Facility) FromString(v string) error {
+	switch v {
+	case Kern.String():
+		*f = Kern
+	case User.String():
+		*f = User
+	case Mail.String():
+		*f = Mail
+	case Daemon.String():
+		*f = Daemon
+	case Auth.String():
+		*f = Auth
+	case Syslog.String():
+		*f = Syslog
+	case LPR.String():
+		*f = LPR
+	case News.String():
+		*f = News
+	case UUCP.String():
+		*f = UUCP
+	case Cron.String():
+		*f = Cron
+	case AuthPriv.String():
+		*f = AuthPriv
+	case FTP.String():
+		*f = FTP
+	case Local0.String():
+		*f = Local0
+	case Local1.String():
+		*f = Local1
+	case Local2.String():
+		*f = Local2
+	case Local3.String():
+		*f = Local3
+	case Local4.String():
+		*f = Local4
+	case Local5.String():
+		*f = Local5
+	case Local6.String():
+		*f = Local6
+	case Local7.String():
+		*f = Local7
+	default:
+		return fmt.Errorf("Failed to load syslog facility from string: %s", v)
+	}
+
+	return nil
 }
 
 // Priority represents the PRI of a rfc3164 message.
