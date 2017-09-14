@@ -74,21 +74,21 @@ func (s Severity) String() string {
 func (s *Severity) FromString(v string) error {
 	switch v {
 	case Emerg.String():
-		s = Emerg
+		*s = Emerg
 	case Alert.String():
-		s = Alert
+		*s = Alert
 	case Crit.String():
-		s = Crit
+		*s = Crit
 	case Err.String():
-		s = Err
+		*s = Err
 	case Warning.String():
-		s = Warning
+		*s = Warning
 	case Notice.String():
-		s = Notice
+		*s = Notice
 	case Info.String():
-		s = Info
+		*s = Info
 	case Debug.String():
-		s = Debug
+		*s = Debug
 	default:
 		return fmt.Errorf("Failed to load syslog severity from string: %s", v)
 	}
@@ -214,45 +214,45 @@ func (f Facility) String() string {
 func (f *Facility) FromString(v string) error {
 	switch v {
 	case Kern.String():
-		f = Kern
+		*f = Kern
 	case User.String():
-		f = User
+		*f = User
 	case Mail.String():
-		f = Mail
+		*f = Mail
 	case Daemon.String():
-		f = Daemon
+		*f = Daemon
 	case Auth.String():
-		f = Auth
+		*f = Auth
 	case Syslog.String():
-		f = Syslog
+		*f = Syslog
 	case LPR.String():
-		f = LPR
+		*f = LPR
 	case News.String():
-		f = News
+		*f = News
 	case UUCP.String():
-		f = UUCP
+		*f = UUCP
 	case Cron.String():
-		f = Cron
+		*f = Cron
 	case AuthPriv.String():
-		f = AuthPriv
+		*f = AuthPriv
 	case FTP.String():
-		f = FTP
+		*f = FTP
 	case Local0.String():
-		f = Local0
+		*f = Local0
 	case Local1.String():
-		f = Local1
+		*f = Local1
 	case Local2.String():
-		f = Local2
+		*f = Local2
 	case Local3.String():
-		f = Local3
+		*f = Local3
 	case Local4.String():
-		f = Local4
+		*f = Local4
 	case Local5.String():
-		f = Local5
+		*f = Local5
 	case Local6.String():
-		f = Local6
+		*f = Local6
 	case Local7.String():
-		f = Local7
+		*f = Local7
 	default:
 		return fmt.Errorf("Failed to load syslog facility from string: %s", v)
 	}

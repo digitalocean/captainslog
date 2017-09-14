@@ -174,3 +174,79 @@ func TestSeverityToString(t *testing.T) {
 		t.Errorf("want %q, got %q", want, got)
 	}
 }
+
+func TestFacilityFromString(t *testing.T) {
+	var f captainslog.Facility
+
+	var tests = []struct {
+		in  string
+		out captainslog.Facility
+	}{
+		{"kern", captainslog.Kern},
+		{"user", captainslog.User},
+		{"mail", captainslog.Mail},
+		{"daemon", captainslog.Daemon},
+		{"auth", captainslog.Auth},
+		{"syslog", captainslog.Syslog},
+		{"lpr", captainslog.LPR},
+		{"news", captainslog.News},
+		{"uucp", captainslog.UUCP},
+		{"cron", captainslog.Cron},
+		{"authpriv", captainslog.AuthPriv},
+		{"ftp", captainslog.FTP},
+		{"local0", captainslog.Local0},
+		{"local1", captainslog.Local1},
+		{"local2", captainslog.Local2},
+		{"local3", captainslog.Local3},
+		{"local4", captainslog.Local4},
+		{"local5", captainslog.Local5},
+		{"local6", captainslog.Local6},
+		{"local7", captainslog.Local7},
+	}
+
+	for _, tt := range tests {
+		err := f.FromString(tt.in)
+		if err != nil {
+			t.Errorf("error converting string to captainslog.Facility, err = %s", err)
+		}
+		if f != tt.out {
+			t.Errorf("want %q, got %q", tt.out, f)
+		}
+	}
+
+	if err := f.FromString("foo"); err == nil {
+		t.Errorf("Did not get error when converting foo to captainslog.Facility")
+	}
+}
+
+func TestSeverityFromString(t *testing.T) {
+	var s captainslog.Severity
+
+	var tests = []struct {
+		in  string
+		out captainslog.Severity
+	}{
+		{"emerg", captainslog.Emerg},
+		{"alert", captainslog.Alert},
+		{"crit", captainslog.Crit},
+		{"err", captainslog.Err},
+		{"warning", captainslog.Warning},
+		{"notice", captainslog.Notice},
+		{"info", captainslog.Info},
+		{"debug", captainslog.Debug},
+	}
+
+	for _, tt := range tests {
+		err := s.FromString(tt.in)
+		if err != nil {
+			t.Errorf("error converting string to captainslog.Facility, err = %s", err)
+		}
+		if s != tt.out {
+			t.Errorf("want %q, got %q", tt.out, s)
+		}
+	}
+
+	if err := s.FromString("foo"); err == nil {
+		t.Errorf("Did not get error when converting foo to captainslog.Severity")
+	}
+}
