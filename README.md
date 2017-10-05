@@ -13,6 +13,24 @@ if err != nil {
 	panic(err)
 }
 ```
+### NewSyslogMsg
+NewSyslogMsg creates an empty captainslog.SyslogMsg and allows to construct a message by setting the various message components.
+
+```go
+msg := captainslog.NewSyslogMsg(tc.options...)
+msg.SetFacility(captainslog.Local7)
+msg.SetSeverity(captainslog.Err)
+
+msgTime, err := time.Parse("2006 Jan 02 15:04:05", "2017 Aug 15 16:18:34")
+if err != nil {
+	t.Error(err)
+}
+
+msg.SetTime(msgTime)
+msg.SetProgram("myprogram")
+msg.SetPid("12")
+msg.SetHost("host.example.com")
+```
 
 ## Contibution Guidelines
 We use the [Collective Code Construction Contract](http://rfc.zeromq.org/spec:22) for the development of captainslog. For details, see [CONTRIBUTING.md](https://github.com/digitalocean/captainslog/blob/master/CONTRIBUTING.md).
