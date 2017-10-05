@@ -17,7 +17,7 @@ if err != nil {
 NewSyslogMsg creates an empty captainslog.SyslogMsg and allows to construct a message by setting the various message components.
 
 ```go
-msg := captainslog.NewSyslogMsg(tc.options...)
+msg := captainslog.NewSyslogMsg()
 msg.SetFacility(captainslog.Local7)
 msg.SetSeverity(captainslog.Err)
 
