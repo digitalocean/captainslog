@@ -38,7 +38,7 @@ b := msg.Bytes()
 ## Create a captainslog.Parser and parse a message:
 ```go
 p := captainslog.NewParser(<options>)
-msg, err := p.ParseBytes([]byte(tc.input))
+msg, err := p.ParseBytes([]byte(line)
 ```
 Both captainslog.NewSyslogMsgFromBytes and captainslog.NewParser accept the following functional arguments:
 
