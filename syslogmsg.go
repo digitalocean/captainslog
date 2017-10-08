@@ -51,6 +51,7 @@ type Tag struct {
 	HasColon bool
 }
 
+// NewTag constructs a new empty captainslog.Tag
 func NewTag() *Tag {
 	return &Tag{
 		HasColon: true,
@@ -214,12 +215,11 @@ func (s *SyslogMsg) String(options ...SyslogMsgOption) string {
 
 	if s.optionUseLocalFormat {
 		return fmt.Sprintf("<%s>%s %s%s%s\n", s.Pri.String(), s.Time.Format(time.Stamp), s.Tag.String(), s.Cee, content)
-	} else {
-		if s.timeFormat == "" {
-			s.timeFormat = rsyslogTimeFormat
-		}
-		return fmt.Sprintf("<%s>%s %s %s%s%s\n", s.Pri.String(), s.Time.Format(s.timeFormat), s.Host, s.Tag.String(), s.Cee, content)
 	}
+	if s.timeFormat == "" {
+		s.timeFormat = rsyslogTimeFormat
+	}
+	return fmt.Sprintf("<%s>%s %s %s%s%s\n", s.Pri.String(), s.Time.Format(s.timeFormat), s.Host, s.Tag.String(), s.Cee, content)
 }
 
 // Bytes returns the SyslogMsg as RFC3164 []byte.
