@@ -113,7 +113,6 @@ func TestNewSyslogMsg(t *testing.T) {
 		name       string
 		options    []captainslog.SyslogMsgOption
 		content    string
-		isJSON     bool
 		facility   captainslog.Facility
 		severity   captainslog.Severity
 		timeString string

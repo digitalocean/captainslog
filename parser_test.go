@@ -559,7 +559,7 @@ func TestParser(t *testing.T) {
 			minute:   4,
 			second:   5,
 			millis:   0,
-			offset:   -8*60*60,
+			offset:   -8 * 60 * 60,
 			host:     "host.example.org",
 			program:  "test",
 			tag:      "test:",
@@ -582,7 +582,7 @@ func TestParser(t *testing.T) {
 			minute:   4,
 			second:   5,
 			millis:   999999,
-			offset:   -7*60*60,
+			offset:   -7 * 60 * 60,
 			host:     "host.example.org",
 			program:  "test",
 			tag:      "test:",
@@ -840,7 +840,7 @@ func BenchmarkJSONParseNoJSON(b *testing.B) {
 func BenchmarkJSONCheckFirstChar(b *testing.B) {
 	m := []byte("hello world")
 	for i := 0; i < b.N; i++ {
-		if bytes.Compare(m[0:0], []byte("{")) == 0 {
+		if bytes.Equal(m[0:0], []byte("{")) {
 			panic("wee")
 		}
 	}

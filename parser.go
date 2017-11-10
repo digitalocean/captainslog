@@ -20,7 +20,6 @@ const (
 	// in checkForLikelyDateTime
 	yearLen     = 4
 	startMonth  = 5
-	monthLen    = 2
 	dayLen      = 2
 	startDay    = 8
 	datePartSep = "-"
@@ -39,7 +38,6 @@ var (
 	//ErrBadContent is returned when the content of a message is malformed.
 	ErrBadContent = errors.New("Content not found")
 
-	dateStampFormat   = "2006-01-02"
 	rsyslogTimeFormat = "2006-01-02T15:04:05.999999-07:00"
 
 	timeFormats = []string{
@@ -53,8 +51,6 @@ var (
 
 // Parser is a parser for syslog messages.
 type Parser struct {
-	tokenStart          int
-	tokenEnd            int
 	buf                 []byte
 	bufLen              int
 	bufEnd              int
@@ -68,7 +64,7 @@ type Parser struct {
 
 // NewParser returns a new parser
 func NewParser(options ...func(*Parser)) *Parser {
-	p := Parser{ location: time.UTC }
+	p := Parser{location: time.UTC}
 	for _, option := range options {
 		option(&p)
 	}
@@ -526,7 +522,7 @@ func ParseContent(buf []byte, options ...func(*contentOpts)) (int, Content, erro
 		option(&o)
 	}
 
-	content := Content{JSONValues: make(map[string]interface{}, 0)}
+	content := Content{JSONValues: make(map[string]interface{})}
 
 	var err error
 	var offset int
