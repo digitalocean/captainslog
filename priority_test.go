@@ -28,9 +28,7 @@ func TestNewPriorityBadSeverity(t *testing.T) {
 }
 
 func TestFacilityToString(t *testing.T) {
-	var f captainslog.Facility
-
-	f = captainslog.Kern
+	f := captainslog.Kern
 	if want, got := "kern", f.String(); want != got {
 		t.Errorf("want %q, got %q", want, got)
 	}
@@ -132,9 +130,7 @@ func TestFacilityToString(t *testing.T) {
 }
 
 func TestSeverityToString(t *testing.T) {
-	var s captainslog.Severity
-
-	s = captainslog.Emerg
+	s := captainslog.Emerg
 	if want, got := "emerg", s.String(); want != got {
 		t.Errorf("want %q, got %q", want, got)
 	}
