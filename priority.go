@@ -71,6 +71,7 @@ func (s Severity) String() string {
 	return severityText
 }
 
+// FromString loads a syslog severity from a string representation
 func (s *Severity) FromString(v string) error {
 	switch v {
 	case Emerg.String():
@@ -211,6 +212,7 @@ func (f Facility) String() string {
 	return faciliyText
 }
 
+// FromString sets the Facility from a string representation.
 func (f *Facility) FromString(v string) error {
 	switch v {
 	case Kern.String():
@@ -272,6 +274,7 @@ func (p Priority) String() string {
 	return fmt.Sprintf("%d", p.Priority)
 }
 
+// SetFacility sets the Facility component of the Priority.
 func (p *Priority) SetFacility(f Facility) error {
 	if int(f) < 0 || int(f) > 23 {
 		return ErrBadFacility
@@ -283,6 +286,7 @@ func (p *Priority) SetFacility(f Facility) error {
 	return nil
 }
 
+// SetSeverity sets the Severity component of the Priority.
 func (p *Priority) SetSeverity(s Severity) error {
 	if int(s) < 0 || int(s) > 7 {
 		return ErrBadSeverity

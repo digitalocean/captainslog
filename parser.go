@@ -135,8 +135,9 @@ func (p *Parser) parse() error {
 	p.msg.Time = msgTime.Time
 	p.msg.timeFormat = msgTime.TimeFormat
 
+	var host string
 	if p.optionNoHostname {
-		host, err := os.Hostname()
+		host, err = os.Hostname()
 		if err != nil {
 			return ErrBadHost
 		}
@@ -560,7 +561,10 @@ func ParseContent(buf []byte, options ...func(*contentOpts)) (int, Content, erro
 	if o.parseJSON && probablyJSON {
 		decoder := json.NewDecoder(bytes.NewBuffer(buf[tokenStart:offset]))
 		decoder.UseNumber()
-		decoder.Decode(&content.JSONValues)
+		err = decoder.Decode(&content.JSONValues)
+		if err != nil {
+			return offset, content, err
+		}
 	}
 	content.Content = string(buf[tokenStart:offset])
 	return offset, content, err
