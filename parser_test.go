@@ -3,6 +3,7 @@ package captainslog_test
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -80,7 +81,52 @@ func TestParser(t *testing.T) {
 			content:  " hello world",
 			jsonKeys: []string{},
 		},
-
+		{
+			name:     "parse plain text with bracket in hostname",
+			input:    "<36>2006-01-02T15:04:05.999999-07:00 pdu.example.org [Sentry3_53d65d] AUTH: User \"ADMN\" logged out -- connection source \"CONSOLE\" [Console]\n",
+			options:  []func(*captainslog.Parser){},
+			err:      nil,
+			facility: captainslog.Auth,
+			severity: captainslog.Warning,
+			year:     2006,
+			month:    1,
+			day:      2,
+			hour:     15,
+			minute:   4,
+			second:   5,
+			millis:   999999,
+			offset:   -25200,
+			host:     "pdu.example.org",
+			program:  "Sentry3_53d65d",
+			tag:      "[Sentry3_53d65d]",
+			pid:      "",
+			cee:      false,
+			content:  " AUTH: User \"ADMN\" logged out -- connection source \"CONSOLE\" [Console]",
+			jsonKeys: []string{},
+		},
+		{
+			name:     "parse plain text with bracket in hostname and pid",
+			input:    "<36>2006-01-02T15:04:05.999999-07:00 pdu.example.org [Sentry3_53d65d][88] AUTH: User \"ADMN\" logged out -- connection source \"CONSOLE\" [Console]\n",
+			options:  []func(*captainslog.Parser){},
+			err:      nil,
+			facility: captainslog.Auth,
+			severity: captainslog.Warning,
+			year:     2006,
+			month:    1,
+			day:      2,
+			hour:     15,
+			minute:   4,
+			second:   5,
+			millis:   999999,
+			offset:   -25200,
+			host:     "pdu.example.org",
+			program:  "Sentry3_53d65d",
+			tag:      "[Sentry3_53d65d][88]",
+			pid:      "88",
+			cee:      false,
+			content:  " AUTH: User \"ADMN\" logged out -- connection source \"CONSOLE\" [Console]",
+			jsonKeys: []string{},
+		},
 		{
 			name:     "parse plain test without pid",
 			input:    "<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: hello world\n",
@@ -406,14 +452,14 @@ func TestParser(t *testing.T) {
 		},
 		{
 			name:     "parse with unix time",
-			input:    "<191>Mon Jan  2 15:04:05 host.example.org test: hello world\n",
+			input:    fmt.Sprintf("<191>%s host.example.org test: hello world\n", generateDate("Mon Jan _2 15:04:05")),
 			options:  []func(*captainslog.Parser){},
 			err:      nil,
 			facility: captainslog.Local7,
 			severity: captainslog.Debug,
 			year:     time.Now().Year(),
 			month:    1,
-			day:      2,
+			day:      1,
 			hour:     15,
 			minute:   4,
 			second:   5,
@@ -541,7 +587,7 @@ func TestParser(t *testing.T) {
 		},
 		{
 			name:    "parse rsyslog could not determine hostname but has ip",
-			input:   "<28>2017-08-01T13:49:57.537348+00:00 192.168.1.123 [localhost] test[146407]: hello world",
+			input:   "<28>2017-08-01T13:49:57.537348+00:00 192.168.1.123 <localhost> test[146407]: hello world",
 			options: []func(*captainslog.Parser){},
 			err:     captainslog.ErrBadTag,
 		},
@@ -858,7 +904,7 @@ func BenchmarkParserParseInvalidDate(b *testing.B) {
 	}
 }
 
-func BenchmarkParserParseInvaliSyslog(b *testing.B) {
+func BenchmarkParserParseInvalidSyslog(b *testing.B) {
 	m := []byte("Hello I am not a syslog message\n")
 
 	for i := 0; i < b.N; i++ {
@@ -868,4 +914,9 @@ func BenchmarkParserParseInvaliSyslog(b *testing.B) {
 			panic(err)
 		}
 	}
+}
+
+func generateDate(f string) string {
+	t := time.Date(time.Now().Year(), time.January, 1, 15, 4, 5, 0, time.UTC) // first day of whatever the current year is
+	return t.Format(f)
 }

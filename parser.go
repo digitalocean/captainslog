@@ -361,7 +361,8 @@ func ParseHost(buf []byte) (int, string, error) {
 }
 
 func isAlphaNumeric(r rune) bool {
-	return unicode.IsLetter(r) || unicode.IsNumber(r)
+	isBracket := (string(r) == "[")
+	return unicode.IsLetter(r) || unicode.IsNumber(r) || isBracket
 }
 
 // ParseTag will try to find a syslog tag at the beginning of the
@@ -370,6 +371,7 @@ func isAlphaNumeric(r rune) bool {
 func ParseTag(buf []byte) (int, Tag, error) {
 	var err error
 	var hasPid bool
+	var hasProgram bool
 	var tokenEnd int
 	var offset int
 
@@ -396,27 +398,44 @@ func ParseTag(buf []byte) (int, Tag, error) {
 			tokenEnd = offset
 			tag.HasColon = true
 			goto FoundEndOfTag
-
 		case ' ':
 			tokenEnd = offset
 			goto FoundEndOfTag
 		case '[':
-			tag.Program = string(buf[tokenStart:offset])
-			offset++
-			if offset > len(buf)-1 {
-				return offset, *tag, ErrBadTag
-			}
-			pidStart := offset
-			tokenEnd = offset
-			for buf[offset] != ']' {
+			if offset == tokenStart {
+				// parse tag.Program starting with [
+				tagStart := offset
+				for buf[offset] != ']' {
+					offset++
+					if offset > len(buf)-1 {
+						return offset, *tag, ErrBadTag
+					}
+				}
+				hasProgram = true
+				tag.StartsWithBracket = true
+				tag.Program = string(buf[tagStart+1 : offset])
+			} else {
+				// parse tag.Program leading to [pid]
+				hasProgram = true
+				if tag.Program == "" {
+					tag.Program = string(buf[tokenStart:offset])
+				}
 				offset++
 				if offset > len(buf)-1 {
 					return offset, *tag, ErrBadTag
 				}
+				pidStart := offset
+				tokenEnd = offset
+				for buf[offset] != ']' {
+					offset++
+					if offset > len(buf)-1 {
+						return offset, *tag, ErrBadTag
+					}
+				}
+				pidEnd := offset
+				tag.Pid = string(buf[pidStart:pidEnd])
+				hasPid = true
 			}
-			pidEnd := offset
-			tag.Pid = string(buf[pidStart:pidEnd])
-			hasPid = true
 		}
 		offset++
 		if offset > len(buf)-1 {
@@ -426,7 +445,7 @@ func ParseTag(buf []byte) (int, Tag, error) {
 
 FoundEndOfTag:
 	strTag := string(buf[tokenStart:tokenEnd])
-	if !hasPid {
+	if !hasPid && !hasProgram {
 		if !tag.HasColon {
 			tag.Program = strTag
 		} else {
