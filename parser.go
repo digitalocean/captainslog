@@ -413,7 +413,7 @@ func ParseTag(buf []byte) (int, Tag, error) {
 				}
 				hasProgram = true
 				tag.StartsWithBracket = true
-				tag.Program = string(buf[tagStart+1:offset])
+				tag.Program = string(buf[tagStart+1 : offset])
 			} else {
 				// parse tag.Program leading to [pid]
 				hasProgram = true

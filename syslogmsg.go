@@ -46,9 +46,9 @@ type Time struct {
 // syslog message's tag, including the full
 // tag, the program name and the pid.
 type Tag struct {
-	Program  string
-	Pid      string
-	HasColon bool
+	Program           string
+	Pid               string
+	HasColon          bool
 	StartsWithBracket bool
 }
 

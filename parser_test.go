@@ -3,6 +3,7 @@ package captainslog_test
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -451,14 +452,14 @@ func TestParser(t *testing.T) {
 		},
 		{
 			name:     "parse with unix time",
-			input:    "<191>Mon Jan  2 15:04:05 host.example.org test: hello world\n",
+			input:    fmt.Sprintf("<191>%s host.example.org test: hello world\n", generateDate("Mon Jan _2 15:04:05")),
 			options:  []func(*captainslog.Parser){},
 			err:      nil,
 			facility: captainslog.Local7,
 			severity: captainslog.Debug,
 			year:     time.Now().Year(),
 			month:    1,
-			day:      2,
+			day:      1,
 			hour:     15,
 			minute:   4,
 			second:   5,
@@ -903,7 +904,7 @@ func BenchmarkParserParseInvalidDate(b *testing.B) {
 	}
 }
 
-func BenchmarkParserParseInvaliSyslog(b *testing.B) {
+func BenchmarkParserParseInvalidSyslog(b *testing.B) {
 	m := []byte("Hello I am not a syslog message\n")
 
 	for i := 0; i < b.N; i++ {
@@ -913,4 +914,9 @@ func BenchmarkParserParseInvaliSyslog(b *testing.B) {
 			panic(err)
 		}
 	}
+}
+
+func generateDate(f string) string {
+	t := time.Date(time.Now().Year(), time.January, 1, 15, 4, 5, 0, time.UTC) // first day of whatever the current year is
+	return t.Format(f)
 }
