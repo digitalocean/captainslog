@@ -49,6 +49,7 @@ type Tag struct {
 	Program  string
 	Pid      string
 	HasColon bool
+	StartsWithBracket bool
 }
 
 // NewTag constructs a new empty captainslog.Tag
@@ -65,11 +66,17 @@ func (t Tag) String() string {
 		colon = ":"
 	}
 
-	if len(t.Pid) == 0 {
-		return t.Program + colon
+	p := t.Program
+
+	if t.StartsWithBracket {
+		p = fmt.Sprintf("[%s]", t.Program)
 	}
 
-	return fmt.Sprintf("%s[%s]%s", t.Program, t.Pid, colon)
+	if len(t.Pid) == 0 {
+		return p + colon
+	}
+
+	return fmt.Sprintf("%s[%s]%s", p, t.Pid, colon)
 }
 
 // NewSyslogMsg creates a new empty SyslogMsg.
