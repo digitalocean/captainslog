@@ -32,6 +32,7 @@ func TestParser(t *testing.T) {
 		tag      string
 		pid      string
 		cee      bool
+		json     bool
 		content  string
 		jsonKeys []string
 	}{
@@ -55,6 +56,7 @@ func TestParser(t *testing.T) {
 			tag:      "test[12]:",
 			pid:      "12",
 			cee:      false,
+			json:     false,
 			content:  " hello world",
 			jsonKeys: []string{},
 		},
@@ -78,6 +80,7 @@ func TestParser(t *testing.T) {
 			tag:      "test.rb:",
 			pid:      "",
 			cee:      false,
+			json:     false,
 			content:  " hello world",
 			jsonKeys: []string{},
 		},
@@ -101,6 +104,7 @@ func TestParser(t *testing.T) {
 			tag:      "[Sentry3_53d65d]",
 			pid:      "",
 			cee:      false,
+			json:     false,
 			content:  " AUTH: User \"ADMN\" logged out -- connection source \"CONSOLE\" [Console]",
 			jsonKeys: []string{},
 		},
@@ -124,6 +128,7 @@ func TestParser(t *testing.T) {
 			tag:      "[Sentry3_53d65d][88]",
 			pid:      "88",
 			cee:      false,
+			json:     false,
 			content:  " AUTH: User \"ADMN\" logged out -- connection source \"CONSOLE\" [Console]",
 			jsonKeys: []string{},
 		},
@@ -147,6 +152,7 @@ func TestParser(t *testing.T) {
 			tag:      "test:",
 			pid:      "",
 			cee:      false,
+			json:     false,
 			content:  " hello world",
 			jsonKeys: []string{},
 		},
@@ -170,6 +176,7 @@ func TestParser(t *testing.T) {
 			tag:      "test-with-hyphen:",
 			pid:      "",
 			cee:      false,
+			json:     false,
 			content:  " hello world",
 			jsonKeys: []string{},
 		},
@@ -194,6 +201,7 @@ func TestParser(t *testing.T) {
 			tag:      "test:",
 			pid:      "",
 			cee:      false,
+			json:     false,
 			content:  "hello world",
 			jsonKeys: []string{},
 		},
@@ -217,6 +225,7 @@ func TestParser(t *testing.T) {
 			tag:      "sudo:",
 			pid:      "",
 			cee:      false,
+			json:     false,
 			content:  " pam_unix(sudo:session): session opened for user root by (uid=0)",
 			jsonKeys: []string{},
 		},
@@ -240,6 +249,7 @@ func TestParser(t *testing.T) {
 			tag:      "test:",
 			pid:      "",
 			cee:      true,
+			json:     true,
 			content:  "{\"a\":\"b\"}",
 			jsonKeys: []string{"a"},
 		},
@@ -263,6 +273,7 @@ func TestParser(t *testing.T) {
 			tag:      "test[12]:",
 			pid:      "12",
 			cee:      false,
+			json:     false,
 			content:  " hello world",
 			jsonKeys: []string{},
 		},
@@ -286,12 +297,13 @@ func TestParser(t *testing.T) {
 			tag:      "test[12]:",
 			pid:      "12",
 			cee:      false,
+			json:     false,
 			content:  " hello world",
 			jsonKeys: []string{},
 		},
 		{
 			name:     "parse cee with space",
-			input:    "<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: @cee:{\"a\":\"b\"}\n",
+			input:    "<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: @cee: {\"a\":\"b\"}\n",
 			options:  []func(*captainslog.Parser){},
 			err:      nil,
 			facility: captainslog.Local7,
@@ -309,7 +321,8 @@ func TestParser(t *testing.T) {
 			tag:      "test:",
 			pid:      "",
 			cee:      true,
-			content:  "{\"a\":\"b\"}",
+			json:     true,
+			content:  " {\"a\":\"b\"}",
 			jsonKeys: []string{"a"},
 		},
 		{
@@ -332,6 +345,7 @@ func TestParser(t *testing.T) {
 			tag:      "test:",
 			pid:      "",
 			cee:      true,
+			json:     true,
 			content:  "{\"a\":\"b\"}",
 			jsonKeys: []string{"a"},
 		},
@@ -355,6 +369,7 @@ func TestParser(t *testing.T) {
 			tag:      "test:",
 			pid:      "",
 			cee:      false,
+			json:     true,
 			content:  " {\"a\":\"b\"}",
 			jsonKeys: []string{"a"},
 		},
@@ -378,6 +393,7 @@ func TestParser(t *testing.T) {
 			tag:      "test:",
 			pid:      "",
 			cee:      false,
+			json:     false,
 			content:  " {\"a\":\"b\"}",
 			jsonKeys: []string{},
 		},
@@ -401,6 +417,7 @@ func TestParser(t *testing.T) {
 			tag:      "test:",
 			pid:      "",
 			cee:      false,
+			json:     false,
 			content:  " @cee",
 			jsonKeys: []string{},
 		},
@@ -424,6 +441,7 @@ func TestParser(t *testing.T) {
 			tag:      "test",
 			pid:      "",
 			cee:      false,
+			json:     false,
 			content:  " hello world",
 			jsonKeys: []string{},
 		},
@@ -447,6 +465,7 @@ func TestParser(t *testing.T) {
 			tag:      "test",
 			pid:      "",
 			cee:      false,
+			json:     false,
 			content:  " hello world",
 			jsonKeys: []string{},
 		},
@@ -470,6 +489,7 @@ func TestParser(t *testing.T) {
 			tag:      "test:",
 			pid:      "",
 			cee:      false,
+			json:     false,
 			content:  " hello world",
 			jsonKeys: []string{},
 		},
@@ -493,6 +513,7 @@ func TestParser(t *testing.T) {
 			tag:      "test:",
 			pid:      "",
 			cee:      false,
+			json:     false,
 			content:  " hello world",
 			jsonKeys: []string{},
 		},
@@ -516,6 +537,7 @@ func TestParser(t *testing.T) {
 			tag:      "test:",
 			pid:      "",
 			cee:      false,
+			json:     false,
 			content:  " hello world",
 			jsonKeys: []string{},
 		},
@@ -611,6 +633,7 @@ func TestParser(t *testing.T) {
 			tag:      "test:",
 			pid:      "",
 			cee:      false,
+			json:     false,
 			content:  " hello world",
 			jsonKeys: []string{},
 		},
@@ -634,6 +657,7 @@ func TestParser(t *testing.T) {
 			tag:      "test:",
 			pid:      "",
 			cee:      false,
+			json:     false,
 			content:  " hello world",
 			jsonKeys: []string{},
 		},
@@ -719,6 +743,10 @@ func TestParser(t *testing.T) {
 
 				if want, got := tc.cee, msg.IsCee; want != got {
 					t.Errorf("cee: want %v, got %v", want, got)
+				}
+
+				if want, got := tc.json, msg.IsJSON; want != got {
+					t.Errorf("json: want %v, got %v for msg %s", want, got, msg.String())
 				}
 
 				if want, got := tc.content, msg.Content; want != got {
