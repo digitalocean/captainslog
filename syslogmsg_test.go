@@ -40,7 +40,6 @@ func TestSyslogMsgPlainWithAddedKeys(t *testing.T) {
 	if want, got := true, strings.Contains(rfc3164, "msg"); want != got {
 		t.Errorf("want '%v', got '%v'", want, got)
 	}
-
 }
 
 func TestSyslogMsgJSONFromPlain(t *testing.T) {
