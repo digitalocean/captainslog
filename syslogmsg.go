@@ -145,6 +145,9 @@ func (s *SyslogMsg) SetContent(c string) error {
 	_, content, err := ParseContent([]byte(c), ContentOptionParseJSON)
 	s.Content = content.Content
 	s.JSONValues = content.JSONValues
+	if len(s.JSONValues) > 0 {
+		s.IsJSON = true
+	}
 	return err
 }
 
