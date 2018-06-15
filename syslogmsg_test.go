@@ -135,7 +135,6 @@ func TestNewSyslogMsg(t *testing.T) {
 			host:       "host.example.com",
 			want:       "<187>2017-08-15T16:18:34+00:00 host.example.com test[12]:this is a non json message\n",
 		},
-
 		{
 			name:       "emitting a message in local syslog format",
 			options:    []captainslog.SyslogMsgOption{captainslog.OptionUseLocalFormat},
@@ -148,6 +147,20 @@ func TestNewSyslogMsg(t *testing.T) {
 			pid:        "12",
 			host:       "host.example.com",
 			want:       "<187>Aug 15 16:18:34 test[12]:this is a non json message\n",
+		},
+		{
+			name:       "emitting a JSON message in local syslog format",
+			options:    []captainslog.SyslogMsgOption{captainslog.OptionUseLocalFormat},
+			content:    "{\"level\":\"info\",\"msg\":\"test message\"}",
+			facility:   captainslog.Local6,
+			severity:   captainslog.Info,
+			timeString: "2017 Aug 15 16:18:34",
+			timeFormat: "2006 Jan 02 15:04:05",
+			program:    "test",
+			pid:        "12",
+			host:       "host.example.com",
+			jsonKeys:   []string{"level", "msg"},
+			want:       "<182>Aug 15 16:18:34 test[12]:{\"level\":\"info\",\"msg\":\"test message\"}\n",
 		},
 	}
 
