@@ -207,6 +207,8 @@ func (s *SyslogMsg) String(options ...SyslogMsgOption) string {
 		if err != nil {
 			panic(err)
 		}
+		// Prepend a leading space before the JSON bytes
+		b = append([]byte(" "), b...)
 		content = string(b)
 	} else {
 		if len(s.JSONValues) > 0 {
