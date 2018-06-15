@@ -108,6 +108,10 @@ func TestNginxToSyslogMsgBackToString(t *testing.T) {
 }
 
 func TestNewSyslogMsg(t *testing.T) {
+	type tag struct {
+		key   string
+		value string
+	}
 	testCases := []struct {
 		name       string
 		options    []captainslog.SyslogMsgOption
@@ -119,6 +123,7 @@ func TestNewSyslogMsg(t *testing.T) {
 		program    string
 		pid        string
 		host       string
+		tags       []tag
 		jsonKeys   []string
 		want       string
 	}{
@@ -159,8 +164,14 @@ func TestNewSyslogMsg(t *testing.T) {
 			program:    "test",
 			pid:        "12",
 			host:       "host.example.com",
-			jsonKeys:   []string{"level", "msg"},
-			want:       "<182>Aug 15 16:18:34 test[12]:{\"level\":\"info\",\"msg\":\"test message\"}\n",
+			tags: []tag{
+				tag{
+					key:   "sometag",
+					value: "somevalue",
+				},
+			},
+			jsonKeys: []string{"level", "msg"},
+			want:     "<182>Aug 15 16:18:34 test[12]:{\"level\":\"info\",\"msg\":\"test message\",\"sometag\":\"somevalue\"}\n",
 		},
 	}
 
@@ -181,6 +192,10 @@ func TestNewSyslogMsg(t *testing.T) {
 			err = msg.SetContent(tc.content)
 			if err != nil {
 				t.Error(err)
+			}
+
+			for _, t := range tc.tags {
+				msg.AddTag(t.key, t.value)
 			}
 
 			for _, v := range tc.jsonKeys {
