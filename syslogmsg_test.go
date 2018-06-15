@@ -171,7 +171,7 @@ func TestNewSyslogMsg(t *testing.T) {
 				},
 			},
 			jsonKeys: []string{"level", "msg"},
-			want:     "<182>Aug 15 16:18:34 test[12]:{\"level\":\"info\",\"msg\":\"test message\",\"sometag\":\"somevalue\"}\n",
+			want:     "<182>Aug 15 16:18:34 test[12]: {\"level\":\"info\",\"msg\":\"test message\",\"sometag\":\"somevalue\"}\n",
 		},
 	}
 
