@@ -577,6 +577,7 @@ func ParseContent(buf []byte, options ...func(*contentOpts)) (int, Content, erro
 		}
 	}
 
+	content.Content = string(buf[tokenStart:offset])
 	if o.parseJSON && probablyJSON {
 		decoder := json.NewDecoder(bytes.NewBuffer(buf[tokenStart:offset]))
 		decoder.UseNumber()
@@ -585,6 +586,5 @@ func ParseContent(buf []byte, options ...func(*contentOpts)) (int, Content, erro
 			return offset, content, err
 		}
 	}
-	content.Content = string(buf[tokenStart:offset])
 	return offset, content, err
 }
