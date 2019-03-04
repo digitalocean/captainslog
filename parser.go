@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"time"
 	"unicode"
+
+	"github.com/tidwall/gjson"
 )
 
 const (
@@ -58,6 +60,7 @@ type Parser struct {
 	requireTerminator   bool
 	optionNoHostname    bool
 	optionDontParseJSON bool
+	optionUseGJSON      bool
 	location            *time.Location
 	msg                 *SyslogMsg
 }
@@ -87,6 +90,15 @@ func OptionNoHostname(p *Parser) {
 // merge the results with the keys in SyslogMsg.JSONVaues.
 func OptionDontParseJSON(p *Parser) {
 	p.optionDontParseJSON = true
+}
+
+// OptionUseGJSONParser uses an alternate parser for CEE JSON content:
+//   https://github.com/tidwall/gjson
+// Particularly for logs with significant numbers of JSON fields, this is expected
+// to yield performance gains.
+// This setting has no effect when used with OptionDontParseJSON.
+func OptionUseGJSONParser(p *Parser) {
+	p.optionUseGJSON = true
 }
 
 // OptionLocation is a helper function to configure the parser to parse time
@@ -173,6 +185,10 @@ func (p *Parser) parse() error {
 	copts := make([]func(*contentOpts), 0)
 	if !p.optionDontParseJSON {
 		copts = append(copts, ContentOptionParseJSON)
+	}
+
+	if p.optionUseGJSON {
+		copts = append(copts, ContentOptionUseGJSON)
 	}
 
 	if p.requireTerminator {
@@ -514,6 +530,7 @@ func ParseCEE(buf []byte) (int, string, error) {
 type contentOpts struct {
 	requireTerminator bool
 	parseJSON         bool
+	useGJSON          bool
 }
 
 // ContentOptionRequireTerminator sets ParseContent to require a \n terminator
@@ -524,6 +541,11 @@ func ContentOptionRequireTerminator(opts *contentOpts) {
 // ContentOptionParseJSON will treat the content as a CEE message
 func ContentOptionParseJSON(opts *contentOpts) {
 	opts.parseJSON = true
+}
+
+// ContentOptionUseGJSON will use the "github.com/tidwall/gjson" JSON parser, if ContentOptionParseJSON is specified
+func ContentOptionUseGJSON(opts *contentOpts) {
+	opts.useGJSON = true
 }
 
 // ParseContent will try to find syslog content at the beginning of the
@@ -579,11 +601,19 @@ func ParseContent(buf []byte, options ...func(*contentOpts)) (int, Content, erro
 
 	content.Content = string(buf[tokenStart:offset])
 	if o.parseJSON && probablyJSON {
-		decoder := json.NewDecoder(bytes.NewBuffer(buf[tokenStart:offset]))
-		decoder.UseNumber()
-		err = decoder.Decode(&content.JSONValues)
-		if err != nil {
-			return offset, content, err
+		if o.useGJSON {
+			m, ok := gjson.Parse(content.Content).Value().(map[string]interface{})
+			if !ok {
+				return offset, content, errors.New("gjson parse failed")
+			}
+			content.JSONValues = m
+		} else {
+			decoder := json.NewDecoder(bytes.NewBuffer(buf[tokenStart:offset]))
+			decoder.UseNumber()
+			err = decoder.Decode(&content.JSONValues)
+			if err != nil {
+				return offset, content, err
+			}
 		}
 	}
 	return offset, content, err
