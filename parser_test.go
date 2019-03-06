@@ -661,6 +661,30 @@ func TestParser(t *testing.T) {
 			content:  " hello world",
 			jsonKeys: []string{},
 		},
+		{
+			name:     "parse CEE using optional GJSON parser",
+			input:    "<191>2006-01-02T15:04:05.999999-07:00 host.example.org test[241]: @cee:{\"egid\":0,\"eid\":0,\"env\":\"production\",\"host\":\"myhost.example.org\",\"level\":\"info\",\"msg\":\"request complete\",\"pid\":7,\"pname\":\"/bin/myprogram\",\"req_method\":\"GET\",\"req_path\":\"/bin/myprogram/\",\"req_remote_ip\":\"172.0.0.1\",\"req_useragent\":\"my-client;go=go1.11.1\",\"resp_bytes_per_sec\":40562776957,\"resp_code\":200,\"resp_duration\":\"1.345193477s\",\"resp_duration_ms\":1345.193477,\"resp_latency\":\"1.345069502s\",\"resp_latency_ms\":1345.069502,\"resp_mebibytes_per_sec\":38683.678586006165,\"resp_size\":54922,\"system\":\"server\",\"time\":\"2019-03-04T19:21:26.895323594Z\",\"version\":\"5b82fdcddaf0286e7fec3a5f8dbf7a67a325fd6b\"}\n",
+			options:  []func(*captainslog.Parser){captainslog.OptionLocation(time.FixedZone("UTC-8", -8*60*60)), captainslog.OptionUseGJSONParser},
+			err:      nil,
+			facility: captainslog.Local7,
+			severity: captainslog.Debug,
+			year:     2006,
+			month:    1,
+			day:      2,
+			hour:     15,
+			minute:   4,
+			second:   5,
+			millis:   999999,
+			offset:   -7 * 60 * 60,
+			host:     "host.example.org",
+			program:  "test",
+			tag:      "test[241]:",
+			pid:      "241",
+			cee:      true,
+			json:     true,
+			content:  "{\"egid\":0,\"eid\":0,\"env\":\"production\",\"host\":\"myhost.example.org\",\"level\":\"info\",\"msg\":\"request complete\",\"pid\":7,\"pname\":\"/bin/myprogram\",\"req_method\":\"GET\",\"req_path\":\"/bin/myprogram/\",\"req_remote_ip\":\"172.0.0.1\",\"req_useragent\":\"my-client;go=go1.11.1\",\"resp_bytes_per_sec\":40562776957,\"resp_code\":200,\"resp_duration\":\"1.345193477s\",\"resp_duration_ms\":1345.193477,\"resp_latency\":\"1.345069502s\",\"resp_latency_ms\":1345.069502,\"resp_mebibytes_per_sec\":38683.678586006165,\"resp_size\":54922,\"system\":\"server\",\"time\":\"2019-03-04T19:21:26.895323594Z\",\"version\":\"5b82fdcddaf0286e7fec3a5f8dbf7a67a325fd6b\"}",
+			jsonKeys: []string{"egid", "eid", "env", "host", "level", "msg", "pid", "pname", "req_method", "req_path", "req_remote_ip", "req_useragent", "resp_bytes_per_sec", "resp_code", "resp_duration", "resp_duration_ms", "resp_latency", "resp_latency_ms", "resp_mebibytes_per_sec", "resp_size", "system", "time", "version"},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -836,6 +860,42 @@ func BenchmarkParserParseCEE(b *testing.B) {
 		}
 		if msg.Host != "host.example.org" {
 			panic("unexpected msg.Host")
+		}
+	}
+}
+
+func BenchmarkParserParseLongCEE(b *testing.B) {
+	m := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: @cee:{\"egid\":0,\"eid\":0,\"env\":\"production\",\"host\":\"myhost.example.org\",\"level\":\"info\",\"msg\":\"request complete\",\"pid\":7,\"pname\":\"/bin/myprogram\",\"req_method\":\"GET\",\"req_path\":\"/bin/myprogram/\",\"req_remote_ip\":\"172.0.0.1\",\"req_useragent\":\"my-client;go=go1.11.1\",\"resp_bytes_per_sec\":40562776957,\"resp_code\":200,\"resp_duration\":\"1.345193477s\",\"resp_duration_ms\":1345.193477,\"resp_latency\":\"1.345069502s\",\"resp_latency_ms\":1345.069502,\"resp_mebibytes_per_sec\":38683.678586006165,\"resp_size\":54922,\"system\":\"server\",\"time\":\"2019-03-04T19:21:26.895323594Z\",\"version\":\"5b82fdcddaf0286e7fec3a5f8dbf7a67a325fd6b\"}\n")
+
+	for i := 0; i < b.N; i++ {
+		b.SetBytes(int64(len(m)))
+		msg, err := captainslog.NewSyslogMsgFromBytes(m)
+		if err != nil {
+			panic(err)
+		}
+		if msg.Host != "host.example.org" {
+			panic("unexpected msg.Host")
+		}
+		if msg.JSONValues["host"] != "myhost.example.org" {
+			panic("unexpected JSON value host")
+		}
+	}
+}
+
+func BenchmarkParserParseLongCEEWithGJSON(b *testing.B) {
+	m := []byte("<191>2006-01-02T15:04:05.999999-07:00 host.example.org test: @cee:{\"egid\":0,\"eid\":0,\"env\":\"production\",\"host\":\"myhost.example.org\",\"level\":\"info\",\"msg\":\"request complete\",\"pid\":7,\"pname\":\"/bin/myprogram\",\"req_method\":\"GET\",\"req_path\":\"/bin/myprogram/\",\"req_remote_ip\":\"172.0.0.1\",\"req_useragent\":\"my-client;go=go1.11.1\",\"resp_bytes_per_sec\":40562776957,\"resp_code\":200,\"resp_duration\":\"1.345193477s\",\"resp_duration_ms\":1345.193477,\"resp_latency\":\"1.345069502s\",\"resp_latency_ms\":1345.069502,\"resp_mebibytes_per_sec\":38683.678586006165,\"resp_size\":54922,\"system\":\"server\",\"time\":\"2019-03-04T19:21:26.895323594Z\",\"version\":\"5b82fdcddaf0286e7fec3a5f8dbf7a67a325fd6b\"}\n")
+
+	for i := 0; i < b.N; i++ {
+		b.SetBytes(int64(len(m)))
+		msg, err := captainslog.NewSyslogMsgFromBytes(m, captainslog.OptionUseGJSONParser)
+		if err != nil {
+			panic(err)
+		}
+		if msg.Host != "host.example.org" {
+			panic("unexpected msg.Host")
+		}
+		if msg.JSONValues["host"] != "myhost.example.org" {
+			panic("unexpected JSON value host")
 		}
 	}
 }
