@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jnadler/captainslog"
+	"github.com/digitalocean/captainslog"
 )
 
 func TestParser(t *testing.T) {
