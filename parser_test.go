@@ -13,28 +13,29 @@ import (
 
 func TestParser(t *testing.T) {
 	testCases := []struct {
-		name     string
-		input    string
-		options  []func(*captainslog.Parser)
-		err      error
-		facility captainslog.Facility
-		severity captainslog.Severity
-		year     int
-		month    int
-		day      int
-		hour     int
-		minute   int
-		second   int
-		millis   int
-		offset   int
-		host     string
-		program  string
-		tag      string
-		pid      string
-		cee      bool
-		json     bool
-		content  string
-		jsonKeys []string
+		name            string
+		input           string
+		options         []func(*captainslog.Parser)
+		sanitizeProgram bool
+		err             error
+		facility        captainslog.Facility
+		severity        captainslog.Severity
+		year            int
+		month           int
+		day             int
+		hour            int
+		minute          int
+		second          int
+		millis          int
+		offset          int
+		host            string
+		program         string
+		tag             string
+		pid             string
+		cee             bool
+		json            bool
+		content         string
+		jsonKeys        []string
 	}{
 		{
 			name:     "parse plain text with pid",
@@ -372,6 +373,37 @@ func TestParser(t *testing.T) {
 			json:     true,
 			content:  " {\"a\":\"b\"}",
 			jsonKeys: []string{"a"},
+		},
+		{
+			name:    "parse program with slashes",
+			input:   "<191>2006-01-02T15:04:05.999999-07:00 host.example.org /usr/bin/test: some content\n",
+			options: []func(*captainslog.Parser){},
+			err:     captainslog.ErrBadTag,
+		},
+		{
+			name:            "parse program with slashes with OptionSanitizeProgram",
+			input:           "<191>2006-01-02T15:04:05.999999-07:00 host.example.org /usr/bin/test: some content\n",
+			options:         []func(*captainslog.Parser){captainslog.OptionSanitizeProgram},
+			sanitizeProgram: true,
+			err:             nil,
+			facility:        captainslog.Local7,
+			severity:        captainslog.Debug,
+			year:            2006,
+			month:           1,
+			day:             2,
+			hour:            15,
+			minute:          4,
+			second:          5,
+			millis:          999999,
+			offset:          -25200,
+			host:            "host.example.org",
+			program:         "test",
+			tag:             "test:",
+			pid:             "",
+			cee:             false,
+			json:            false,
+			content:         " some content",
+			jsonKeys:        []string{},
 		},
 		{
 			name:     "parse json without cee with OptionDontParseJSON",
@@ -789,8 +821,10 @@ func TestParser(t *testing.T) {
 
 				// NOTE: for now we do not do a byte level reconstruction test if the original
 				// message had JSON, since re-encoding the JSON to reconstruct the message
-				// can remove spaces that were in the origin message
-				if !useLocal && !msg.IsJSON {
+				// can remove spaces that were in the origin message. Also, if we choose to
+				// sanitize the program name, it will lose the context of a prefixed path, so
+				// comparing with the original bytes would fail.
+				if !useLocal && !msg.IsJSON && !tc.sanitizeProgram {
 					if want, got := 0, bytes.Compare([]byte(tc.input), msg.Bytes()); want != got {
 						t.Errorf("want %q, got  %q", tc.input, msg.Bytes())
 					}
