@@ -845,7 +845,7 @@ func TestLongOssecLine(t *testing.T) {
 		fmt.Printf("ERROR: %v\n", err)
 		assert.NoError(t, err)
 	}
-	assert.Equal(t, "concourse-worker-prod-af97673ad5.nbg1.internal.digitalocean.com", msg.Host)
+	assert.Equal(t, "myhost.mydc.internal.digitalocean.com", msg.Host)
 	assert.Equal(t, 15960, len(msg.Content))
 }
 
